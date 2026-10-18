@@ -1,5 +1,5 @@
-from apps.models.scan import ScanModel, ScanType
-from apps.schemas.scan import ScanCreate, ScanResponse
+from apps.models.scan import ScanModel
+from apps.schemas.scan import ScanCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections.abc import Sequence
 from sqlalchemy import select

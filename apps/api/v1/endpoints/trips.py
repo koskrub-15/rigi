@@ -1,8 +1,6 @@
 from apps.db.session import get_db
-from apps.models.scan import ScanModel
 from apps.schemas.trip import TripResponse
-from fastapi import FastAPI, HTTPException, Query, status, APIRouter, Depends
-from apps.schemas.scan import ScanCreate, ScanResponse
+from fastapi import APIRouter, Depends
 from apps.CRUD.scan import get_scans
 from sqlalchemy.ext.asyncio import AsyncSession
 from apps.services.trips import build_trips
