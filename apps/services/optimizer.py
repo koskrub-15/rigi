@@ -15,3 +15,7 @@ def optimizer(trips: list[TripResponse]) -> list[TicketResponse]:
             )
         )
     return tickets
+
+
+def total_price(tickets: list[TicketResponse]) -> int:
+    return sum(ticket.price for ticket in tickets)
