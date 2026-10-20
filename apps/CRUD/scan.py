@@ -20,7 +20,7 @@ async def create_scan(scan: ScanCreate, db: AsyncSession, user_id: int) -> ScanM
 async def get_scans(db: AsyncSession, user_id: int) -> Sequence[ScanModel]:
     result = await db.scalars(
         select(ScanModel)
-        .where(user_id == ScanModel.user_id)
+        .where(ScanModel.user_id == user_id)
         .order_by(ScanModel.timestamp)
     )
     return result.all()
