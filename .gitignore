@@ -1,6 +1,7 @@
 **
 
-!apps
+# = = = = = whitelist = = = = = #
+!apps/
 !apps/**
 !.python-version
 !uv.lock
@@ -29,17 +30,18 @@
 !scripts/
 !scripts/**
 !pyproject.toml
-apps/**/__pycache__/
-apps/**/*.pyc
-apps/**/*.env
-apps/**/__pycache__/
-apps/**/*.pyc
-tests/**/__pycache__/
-tests/**/*.pyc
-alembic/**/__pycache__/
-alembic/**/*.pyc
-scripts/**/__pycache__/
-scripts/**/*.pyc
 !.pre-commit-config.yaml
 !.github/
 !.github/**
+!front/
+!front/**
+!IDEAS.md
+
+
+# = = = = = blacklist = = = = = #
+__pycache__/
+*.pyc
+node_modules/
+.env.*
+*.env
+!env.example
