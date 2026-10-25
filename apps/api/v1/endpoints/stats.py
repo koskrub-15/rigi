@@ -1,0 +1,31 @@
+from apps.db.session import get_db
+from apps.schemas.stats import StatsResponse
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from apps.services.optimizer import optimizer, total_price
+from datetime import datetime
+from apps.services.trips import get_trips, trips_per_day
+from apps.core.tariffs import tariffs
+from apps.core.enums import TicketType
+
+stats_router = APIRouter(prefix="/stats", tags=["stats"])
+
+
+@stats_router.get("", response_model=StatsResponse)
+async def get_stats_endpoint(
+    user_id: int,
+    date_from: datetime,
+    date_to: datetime,
+    db: AsyncSession = Depends(get_db),
+) -> StatsResponse:
+    """Get users stats"""
+    trips = await get_trips(
+        user_id=user_id, date_from=date_from, date_to=date_to, db=db
+    )
+    tickets = optimizer(trips=trips)
+    total = total_price(tickets)
+    singles_price = len(trips) * tariffs[TicketType.SINGLE_TICKET]
+    per_day = trips_per_day(trips=trips)
+    return StatsResponse(
+        trips_count=len(trips), paid=total, singles_price=singles_price, per_day=per_day
+    )
