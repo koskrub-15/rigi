@@ -1,3 +1,5 @@
+import { monthBounds } from "./month";
+
 const router = "http://localhost:8000/users/1";
 
 interface Trip {
@@ -30,3 +32,6 @@ loadTrips();
 
 document.querySelector("#check-in")!.addEventListener("click", () => sendScan("check_in"));
 document.querySelector("#check-out")!.addEventListener("click", () => sendScan("check_out"));
+
+
+console.log("Month bounds:", monthBounds(new Date()));
