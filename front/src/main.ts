@@ -7,6 +7,9 @@ let chart: Chart | undefined;
 interface Trip {
   start: string;
   end: string;
+  from_zone: string;
+  to_zone: string;
+  zones: number;
 }
 
 interface Ticket {
@@ -40,14 +43,14 @@ async function loadTrips() {
   list.replaceChildren();
   for (const trip of trips) {
     const li = document.createElement("li");
-    li.textContent = `${trip.start} — ${trip.end}`;
+    li.textContent = `${trip.start} — ${trip.end} ${trip.from_zone} -> ${trip.to_zone} \(${trip.zones} zones\)`;
     list.append(li);
   }
 }
 
 
-async function sendScan(scan_type: string) {
-  await fetch(`${router}/scans`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scan_type: scan_type, timestamp: new Date().toISOString() }) });
+async function sendScan(scan_type: string, zone: string) {
+  await fetch(`${router}/scans`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scan_type: scan_type, timestamp: new Date().toISOString(), zone: zone }) });
   await loadTrips();
   await loadBill(new Date());
   await loadStats(new Date());
@@ -98,7 +101,12 @@ loadTrips();
 loadBill(new Date());
 loadStats(new Date());
 
-document.querySelector("#check-in")!.addEventListener("click", () => sendScan("check_in"));
-document.querySelector("#check-out")!.addEventListener("click", () => sendScan("check_out"));
 
+document.querySelector("#check-in")!
+  .addEventListener("click", () => sendScan(
+    "check_in",
+    document.querySelector<HTMLSelectElement>("#zone")!.value));
+document.querySelector("#check-out")!.addEventListener("click", () => sendScan(
+  "check_out",
+  document.querySelector<HTMLSelectElement>("#zone")!.value));
 
