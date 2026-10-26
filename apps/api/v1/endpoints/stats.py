@@ -2,11 +2,9 @@ from apps.db.session import get_db
 from apps.schemas.stats import StatsResponse
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from apps.services.optimizer import optimizer, total_price
+from apps.services.optimizer import get_price_of_single_ticket, optimizer, total_price
 from datetime import datetime
 from apps.services.trips import get_trips, trips_per_day
-from apps.core.tariffs import tariffs
-from apps.core.enums import TicketType
 
 stats_router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -24,7 +22,7 @@ async def get_stats_endpoint(
     )
     tickets = optimizer(trips=trips)
     total = total_price(tickets)
-    singles_price = len(trips) * tariffs[TicketType.SINGLE_TICKET]
+    singles_price = sum(get_price_of_single_ticket(trip=trip) for trip in trips)
     per_day = trips_per_day(trips=trips)
     return StatsResponse(
         trips_count=len(trips), paid=total, singles_price=singles_price, per_day=per_day

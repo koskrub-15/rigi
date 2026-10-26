@@ -3,6 +3,7 @@ from apps.core.enums import TicketType
 from apps.schemas.ticket import TicketResponse
 from apps.schemas.trip import TripResponse
 from datetime import date, datetime, time, timedelta
+from collections import defaultdict
 
 
 def optimizer(trips: list[TripResponse]) -> list[TicketResponse]:
@@ -27,13 +28,12 @@ def optimizer(trips: list[TripResponse]) -> list[TicketResponse]:
                         TicketResponse(
                             type=TicketType.SINGLE_TICKET,
                             valid_from=trip.start,
-                            price=tariffs[TicketType.SINGLE_TICKET],
+                            price=get_price_of_single_ticket(trip=trip),
                         )
                     )
 
         i = where_to_past
     list_of_tickets.sort(key=get_valid_from)
-    # list_of_tickets.reverse()
     return list_of_tickets
 
 
@@ -50,15 +50,20 @@ def fill_table(
     best = {}
     choice = {}
     best[0] = 0
-    # choice[0] = TicketType.SINGLE_TICKET
     dates_of_trips = sorted([el.start.date() for el in trips])
     days = list(dict.fromkeys(dates_of_trips))
+
+    singles_prices: defaultdict[date, int] = defaultdict(int)
+
+    for trip in trips:
+        singles_prices[trip.start.date()] += get_price_of_single_ticket(trip=trip)
+
     for i in range(1, len(days) + 1):
         j = 0
-        buffer[
-            dates_of_trips.count(days[i - 1]) * tariffs[TicketType.SINGLE_TICKET]
-            + best[i - 1]
-        ] = (TicketType.SINGLE_TICKET, i - 1)
+        buffer[singles_prices[days[i - 1]] + best[i - 1]] = (
+            TicketType.SINGLE_TICKET,
+            i - 1,
+        )
         buffer[tariffs[TicketType.DAY_TICKET] + best[i - 1]] = (
             TicketType.DAY_TICKET,
             i - 1,
@@ -71,15 +76,13 @@ def fill_table(
             j,
         )
         best[i] = min(buffer.keys())
-        # diff = best[i] - best[i - 1]
         choice[i] = buffer[best[i]]
-        # choice[i] = next(
-        #     (t, j if t in (TicketType.DAY_TICKET, TicketType.SINGLE_TICKET) else i - 1)
-        #     for t, price in tariffs.items()
-        #     if price == diff
-        # )
         buffer.clear()
     return (days, best, choice)
+
+
+def get_price_of_single_ticket(trip: TripResponse) -> int:
+    return tariffs[TicketType.SINGLE_TICKET] * trip.zones
 
 
 def get_valid_from(ticket: TicketResponse) -> datetime:

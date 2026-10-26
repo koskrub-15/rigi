@@ -1,6 +1,6 @@
 import random
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from apps.core.enums import TicketType
 from apps.core.tariffs import tariffs
@@ -29,6 +29,12 @@ def test_one_single_ticket_per_trip():
     assert all(t.type == TicketType.SINGLE_TICKET for t in tickets)
     assert [t.valid_from for t in tickets] == [t.start for t in trips]
     assert sum(t.price for t in tickets) == 9
+
+
+def test_single_ticket_price_is_per_zone():
+    tickets = optimizer([trip(13, 8, zones=2)])
+
+    assert [(t.type, t.price) for t in tickets] == [(TicketType.SINGLE_TICKET, 6)]
 
 
 def test_no_trips_no_tickets():
@@ -65,6 +71,26 @@ def test_min_cost_order_of_trips_does_not_matter():
     trips = [trip(1, 8), trip(1, 12), trip(2, 8), trip(5, 18), trip(9, 8)]
 
     assert min_cost(list(reversed(trips))) == min_cost(trips)
+
+
+def test_min_cost_two_trips_with_same_start():
+    # регрессия: цены разовых лежали в словаре по trip.start и затирали друг друга
+    assert min_cost([trip(13, 8), trip(13, 8)]) == 6
+
+
+def test_min_cost_single_price_grows_with_zones():
+    assert min_cost([trip(13, 8, zones=2)]) == 6
+
+
+def test_min_cost_three_zones_cheaper_with_day_ticket():
+    assert min_cost([trip(13, 8, zones=3)]) == 8
+
+
+def test_min_cost_mixed_zones_in_one_day():
+    # 3 + 3 = 6 < 8: разовые, хотя поездок две
+    assert min_cost([trip(13, 8), trip(13, 18)]) == 6
+    # 3 + 6 = 9 > 8: вторая через 2 зоны — уже дневной
+    assert min_cost([trip(13, 8), trip(13, 18, zones=2)]) == 8
 
 
 # --- какие именно билеты ---
@@ -120,7 +146,8 @@ def test_tickets_are_sorted_even_if_trips_are_not():
 
 def random_trips(rng: random.Random) -> list[TripResponse]:
     trips = [
-        trip(rng.randint(1, 21), rng.randint(6, 22)) for _ in range(rng.randint(0, 12))
+        trip(rng.randint(1, 21), rng.randint(6, 22), rng.randint(1, 4))
+        for _ in range(rng.randint(0, 12))
     ]
     rng.shuffle(trips)
     return trips
@@ -129,7 +156,9 @@ def random_trips(rng: random.Random) -> list[TripResponse]:
 def brute_force_cost(trips: list[TripResponse]) -> int:
     # эталон: честный перебор. Самый ранний непокрытый день закрываем
     # разовыми, дневным или недельным, который НАЧИНАЕТСЯ в этот день
-    per_day = Counter(t.start.date() for t in trips)
+    per_day: Counter[date] = Counter()
+    for t in trips:
+        per_day[t.start.date()] += tariffs[TicketType.SINGLE_TICKET] * t.zones
     days = sorted(per_day)
 
     def cost_from(k: int) -> int:
@@ -140,7 +169,7 @@ def brute_force_cost(trips: list[TripResponse]) -> int:
         while after_week < len(days) and days[after_week] <= day + timedelta(days=6):
             after_week += 1
         return min(
-            tariffs[TicketType.SINGLE_TICKET] * per_day[day] + cost_from(k + 1),
+            per_day[day] + cost_from(k + 1),
             tariffs[TicketType.DAY_TICKET] + cost_from(k + 1),
             tariffs[TicketType.WEEKLY_TICKET] + cost_from(after_week),
         )

@@ -49,3 +49,15 @@ async def test_paid_equals_bill_total(client: AsyncClient):
 
     assert stats["paid"] == bill["total"] == 11
     assert stats["singles_price"] == 15
+
+
+async def test_singles_price_counts_zones(client: AsyncClient):
+    # A -> B (2 зоны) и B -> F (3 зоны) в разные дни: разовыми 6 + 9 = 15,
+    # оптимально 6 + 8 (дневной на длинную)
+    await ride(client, 1, "2026-10-13T08:00", "2026-10-13T08:30", "A", "B")
+    await ride(client, 1, "2026-10-14T08:00", "2026-10-14T08:30", "B", "F")
+
+    stats = await get_stats(client, 1, *OCTOBER)
+
+    assert stats["singles_price"] == 15
+    assert stats["paid"] == 14

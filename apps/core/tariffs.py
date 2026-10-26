@@ -2,7 +2,7 @@ from apps.core.enums import TicketType
 
 
 tariffs = {
-    TicketType.SINGLE_TICKET: 3,
-    TicketType.DAY_TICKET: 8,
-    TicketType.WEEKLY_TICKET: 25,
+    TicketType.SINGLE_TICKET: 3,  # price for one zone trip, for more zones, price is gradually increased
+    TicketType.DAY_TICKET: 8,  # now all zones included
+    TicketType.WEEKLY_TICKET: 25,  # now all zones included
 }
