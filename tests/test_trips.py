@@ -12,13 +12,15 @@ def at(hh: int, mm: int = 0) -> datetime:
     return datetime(2026, 10, 17, hh, mm)
 
 
-def scan(kind: ScanType, hh: int, mm: int = 0) -> ScanModel:
+def scan(kind: ScanType, hh: int, mm: int = 0, zone: str = "A") -> ScanModel:
     # ScanModel можно создать без БД — это просто объект Python
-    return ScanModel(user_id=1, scan_type=kind, timestamp=at(hh, mm))
+    return ScanModel(user_id=1, scan_type=kind, timestamp=at(hh, mm), zone=zone)
 
 
 def trip(h1: int, m1: int, h2: int, m2: int) -> TripResponse:
-    return TripResponse(start=at(h1, m1), end=at(h2, m2))
+    return TripResponse(
+        start=at(h1, m1), end=at(h2, m2), from_zone="A", to_zone="A", zones=1
+    )
 
 
 # --- таблица из брифинга целиком ---
@@ -63,3 +65,18 @@ def test_unclosed_in_is_ignored():
 
 def test_empty():
     assert build_trips([]) == []
+
+
+# --- зоны ---
+
+
+def test_trip_takes_zones_from_both_scans():
+    trips = build_trips([scan(IN, 8, zone="A"), scan(OUT, 9, zone="F")])
+
+    assert (trips[0].from_zone, trips[0].to_zone, trips[0].zones) == ("A", "F", 4)
+
+
+def test_forgotten_check_out_ends_in_zone_of_next_check_in():
+    trips = build_trips([scan(IN, 8, zone="B"), scan(IN, 12, zone="F")])
+
+    assert (trips[0].from_zone, trips[0].to_zone, trips[0].zones) == ("B", "F", 3)

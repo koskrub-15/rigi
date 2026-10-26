@@ -9,10 +9,14 @@ from apps.schemas.trip import TripResponse
 from apps.services.optimizer import min_cost, optimizer
 
 
-def trip(day: int, hh: int) -> TripResponse:
+def trip(day: int, hh: int, zones: int = 1) -> TripResponse:
+    # from/to для оптимизатора не важны, он смотрит только на zones
     return TripResponse(
         start=datetime(2026, 10, day, hh, 0),
         end=datetime(2026, 10, day, hh, 30),
+        from_zone="A",
+        to_zone="A",
+        zones=zones,
     )
 
 

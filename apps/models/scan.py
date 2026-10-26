@@ -15,3 +15,4 @@ class ScanModel(Base):
     user_id: Mapped[int] = mapped_column(index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime)
     scan_type: Mapped[ScanType] = mapped_column(String(20))
+    zone: Mapped[str] = mapped_column(String(20))

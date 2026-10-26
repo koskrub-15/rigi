@@ -10,6 +10,7 @@ from apps.core.datetimes import to_naive_utc
 from sqlalchemy.ext.asyncio import AsyncSession
 from apps.CRUD.scan import get_scans
 from collections import deque
+from apps.core.zones import ZONES_GRAPH
 from typing import Mapping
 
 
@@ -18,7 +19,21 @@ def build_trips(scans: Sequence[ScanModel]) -> list[TripResponse]:
     trips: list[TripResponse] = []
     for el in scans:
         if opened is not None:
-            trips.append(TripResponse(start=opened.timestamp, end=el.timestamp))
+            trips.append(
+                TripResponse(
+                    start=opened.timestamp,
+                    end=el.timestamp,
+                    from_zone=opened.zone,
+                    to_zone=el.zone,
+                    zones=len(
+                        bfs_zones(
+                            graph=ZONES_GRAPH,
+                            start_zone=opened.zone,
+                            end_zone=el.zone,
+                        )
+                    ),
+                )
+            )
             opened = None
         if el.scan_type == ScanType.CHECK_IN:
             opened = el
@@ -57,8 +72,8 @@ def bfs_zones(
 
 def trips_per_day(trips: list[TripResponse]) -> list[PerDaySchema]:
     counts = defaultdict(int)
-    trips.sort(key=lambda trip: trip.start)
-    for trip in trips:
+    sorted_trips = sorted(trips, key=lambda trip: trip.start)
+    for trip in sorted_trips:
         trip_date = trip.start.date()
         counts[trip_date] += 1
 
