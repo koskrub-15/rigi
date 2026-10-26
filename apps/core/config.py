@@ -11,9 +11,8 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_BASE_URL: str = "http://localhost:8000"
     CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
         "http://localhost:5173",
+        "http://site.project.local.net:5173",
     ]
 
     # Auth settings
