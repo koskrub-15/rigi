@@ -1,11 +1,8 @@
 from datetime import datetime
 from apps.core.enums import ScanType
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from apps.db.base import Base
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import DateTime, String
-
-
-class Base(DeclarativeBase):
-    pass
 
 
 class ScanModel(Base):
