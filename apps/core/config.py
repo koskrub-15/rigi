@@ -14,11 +14,10 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://site.project.local.net:5173",
     ]
-
-    # Auth settings
-    # ALGORITHM: str = "HS256"
-    # ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    # REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # Auth Settings
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
 
 settings = Settings()  # pyright: ignore[reportCallIssue]  # поля берутся из .env
