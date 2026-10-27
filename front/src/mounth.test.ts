@@ -8,12 +8,9 @@ test("middle of october", () => {
   ]);
 });
 
-
 test("middle of december", () => {
   expect(monthBounds(new Date(2026, 11, 15))).toEqual([
     new Date(2026, 11, 1),
     new Date(2027, 0, 1),
   ]);
 });
-
-

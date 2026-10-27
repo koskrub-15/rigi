@@ -5,7 +5,7 @@ from apps.models.scan import ScanModel
 from apps.schemas.stats import PerDaySchema
 from apps.schemas.trip import TripResponse
 
-from datetime import datetime
+from datetime import datetime, date
 from apps.core.datetimes import to_naive_utc
 from sqlalchemy.ext.asyncio import AsyncSession
 from apps.CRUD.scan import get_scans
@@ -71,7 +71,7 @@ def bfs_zones(
 
 
 def trips_per_day(trips: list[TripResponse]) -> list[PerDaySchema]:
-    counts = defaultdict(int)
+    counts: defaultdict[date, int] = defaultdict(int)
     sorted_trips = sorted(trips, key=lambda trip: trip.start)
     for trip in sorted_trips:
         trip_date = trip.start.date()

@@ -185,7 +185,9 @@ def is_covered(one_trip: TripResponse, tickets: list[TicketResponse]) -> bool:
             return True
         if t.type == TicketType.DAY_TICKET and start == day:
             return True
-        if t.type == TicketType.WEEKLY_TICKET and start <= day <= start + timedelta(days=6):
+        if t.type == TicketType.WEEKLY_TICKET and start <= day <= start + timedelta(
+            days=6
+        ):
             return True
     return False
 
