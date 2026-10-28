@@ -5,20 +5,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from apps.services.optimizer import get_price_of_single_ticket, optimizer, total_price
 from datetime import datetime
 from apps.services.trips import get_trips, trips_per_day
+from apps.models.user import User
+from apps.api.deps import get_current_user
+
 
 stats_router = APIRouter(prefix="/stats", tags=["stats"])
 
 
 @stats_router.get("", response_model=StatsResponse)
 async def get_stats_endpoint(
-    user_id: int,
     date_from: datetime,
     date_to: datetime,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> StatsResponse:
     """Get users stats"""
     trips = await get_trips(
-        user_id=user_id, date_from=date_from, date_to=date_to, db=db
+        user_id=current_user.id, date_from=date_from, date_to=date_to, db=db
     )
     tickets = optimizer(trips=trips)
     total = total_price(tickets)
