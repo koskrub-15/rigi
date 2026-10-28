@@ -20,4 +20,4 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
 
-settings = Settings()  # pyright: ignore[reportCallIssue]  # поля берутся из .env
+settings = Settings()  # pyright: ignore[reportCallIssue]
