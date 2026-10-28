@@ -1,4 +1,11 @@
+from datetime import timedelta
+
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from apps.core.security import create_access_token
+from apps.CRUD.user import create_user
+from apps.schemas.user import UserCreate
 
 from tests.conftest import MakeAuthClient
 
@@ -40,6 +47,13 @@ async def test_register_duplicate_email_is_rejected(client: AsyncClient):
     assert response.status_code == 409
 
 
+async def test_create_user_returns_none_for_taken_email(db_session: AsyncSession):
+    data = UserCreate(**USER)
+
+    assert await create_user(db_session, data) is not None
+    assert await create_user(db_session, data) is None
+
+
 async def test_login_is_case_insensitive_for_email(client: AsyncClient):
     await client.post("/auth/register", json=USER)
 
@@ -63,6 +77,17 @@ async def test_login_wrong_password_returns_401(client: AsyncClient):
 
 async def test_protected_endpoint_requires_token(client: AsyncClient):
     response = await client.get("/trips")
+
+    assert response.status_code == 401
+
+
+async def test_expired_access_token_returns_401(client: AsyncClient):
+    user = (await client.post("/auth/register", json=USER)).json()
+    expired = create_access_token(user["id"], timedelta(seconds=-1))
+
+    response = await client.get(
+        "/trips", headers={"Authorization": f"Bearer {expired}"}
+    )
 
     assert response.status_code == 401
 

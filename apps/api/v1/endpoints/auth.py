@@ -23,13 +23,12 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 )
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     """Register a new user account."""
-    existing = await get_user_by_email(db, user_in.email)
-    if existing:
+    user = await create_user(db, user_in)
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
         )
-
-    return await create_user(db, user_in)
+    return user
 
 
 @router.post("/login")
