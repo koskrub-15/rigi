@@ -4,11 +4,11 @@ services:
       target: final
 
     ports:
-      - "60000:8000"
+      - "8000:8000"
 
     volumes:
       - ./files:/wd/files
-
+      - ./alembic:/wd/alembic
     develop:
       watch:
         # Sync the entire apps directory
