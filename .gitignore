@@ -35,6 +35,8 @@
 !.github/**
 !front/
 !front/**
+!web/
+!web/**
 !IDEAS.md
 
 
