@@ -1,6 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
 
 const API = "http://localhost:8000";
+
+type Trip = {
+  start: string;
+  end: string;
+  from_zone: string;
+  to_zone: string;
+  zones: number;
+}
+
 
 
 function App() {
@@ -11,7 +21,10 @@ function App() {
     setToken(null);
   }
   return token ? (
-    <button onClick={logout}>Log out</button>
+    <>
+      <TripsList token={token} onLogout={logout} />
+      <button onClick={logout}>Log out</button>
+    </>
   ) : (
     <LoginForm onLogin={setToken} />
   );
@@ -49,6 +62,29 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
       {error && <p>{error}</p>}
     </form>
   );
+}
+
+function TripsList({ token, onLogout }: { token: string; onLogout: () => void }) {
+  const [trips, setTrips] = useState<Trip[]>([]);
+
+  useEffect(() => {
+    async function fetchTrips() {
+      const response = await fetch(`${API}/trips`, { headers: { "Authorization": `Bearer ${token}` } });
+      if (!response.ok) {
+        if (response.status === 401) {
+          onLogout();
+        }
+        return;
+      }
+      const data = await response.json();
+      setTrips(data);
+    }
+    fetchTrips();
+  }, [token]);
+
+  return (
+    trips.length === 0 ? <p>There are no trips yet</p> : <ul> {trips.map((trip) => <li key={trip.start}>{trip.start} — {trip.end} {trip.from_zone} {"->"} {trip.to_zone} ({trip.zones} zones) </li>)} </ul>
+  )
 }
 
 export default App;
