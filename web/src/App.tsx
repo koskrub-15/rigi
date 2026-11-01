@@ -72,6 +72,7 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
       <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
       <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
       <button type="submit">Submit</button>
+      <p>Don't have an account? <Link to="/register">Register</Link></p>
       {error && <p>{error}</p>}
     </form>
   );
