@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 
 const API = "http://localhost:8000";
 
@@ -13,6 +13,7 @@ type Trip = {
 
 
 
+
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access_token"));
   function logout() {
@@ -20,14 +21,27 @@ function App() {
     localStorage.removeItem("refresh_token");
     setToken(null);
   }
-  return token ? (
-    <>
-      <TripsList token={token} onLogout={logout} />
-      <button onClick={logout}>Log out</button>
-    </>
-  ) : (
-    <LoginForm onLogin={setToken} />
-  );
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            token ? (
+              <>
+                <TripsList token={token} onLogout={logout} />
+                <button onClick={logout}>Log out</button>
+              </>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginForm onLogin={setToken} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
 
 function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
