@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from "react-router";
 
 const API = "http://localhost:8000";
 
@@ -10,8 +10,6 @@ type Trip = {
   to_zone: string;
   zones: number;
 }
-
-
 
 
 function App() {
@@ -38,6 +36,7 @@ function App() {
           }
         />
         <Route path="/login" element={token ? <Navigate to="/" replace /> : <LoginForm onLogin={setToken} />} />
+        <Route path="/register" element={token ? <Navigate to="/" replace /> : <RegisterForm />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
@@ -76,6 +75,53 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
       {error && <p>{error}</p>}
     </form>
   );
+}
+
+
+function RegisterForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    const response = await fetch(`${API}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        password: password,
+      }),
+    });
+    if (!response.ok) {
+      if (response.status === 409)
+        setError("this email is already registered");
+      if (response.status === 422)
+        setError("Check your input: Password must be at least 8 characters long, first name and last name are not empty and email must be valid");
+      return;
+    }
+    navigate("/login");
+  }
+
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input value={firstName} onChange={(e) => setFirstName(e.target.value)} type="text" placeholder="First Name" />
+      <input value={lastName} onChange={(e) => setLastName(e.target.value)} type="text" placeholder="Last Name" />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+      <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
+      <button type="submit">Submit</button>
+      <p>Already have an account? <Link to="/login">Log in</Link></p>
+      {error && <p>{error}</p>}
+    </form>
+  )
+
 }
 
 function TripsList({ token, onLogout }: { token: string; onLogout: () => void }) {
