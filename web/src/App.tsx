@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from "react-router";
 import { monthBounds } from "./month";
+import "chart.js/auto";
+import { Bar } from "react-chartjs-2";
 const API = "http://localhost:8000";
 const ZONES = ["A", "B", "C", "D", "E", "F"];
 
@@ -21,6 +23,18 @@ type Ticket = {
 type Bill = {
   tickets: Ticket[];
   total: number;
+}
+
+type PerDay = {
+  day: string;
+  trips: number;
+}
+
+type Stats = {
+  trips_count: number;
+  paid: number;
+  singles_price: number;
+  per_day: PerDay[];
 }
 
 const TICKET_NAMES: Record<string, string> = {
@@ -146,6 +160,7 @@ function RegisterForm() {
 function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [bill, setBill] = useState<Bill | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState("");
 
 
@@ -159,6 +174,7 @@ function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
 
     const tripsResponse = await fetch(`${API}/trips`, { headers: { "Authorization": `Bearer ${token}` } });
     const billResponse = await fetch(`${API}/bill?${params}`, { headers: { "Authorization": `Bearer ${token}` } });
+    const statsResponse = await fetch(`${API}/stats?${params}`, { headers: { "Authorization": `Bearer ${token}` } });
     if (!tripsResponse.ok) {
       if (tripsResponse.status === 401) {
         onLogout();
@@ -171,10 +187,18 @@ function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
       }
       return;
     }
+    if (!statsResponse.ok) {
+      if (statsResponse.status === 401) {
+        onLogout();
+      }
+      return;
+    }
     const tripsData = await tripsResponse.json();
     const billData = await billResponse.json();
+    const statsData = await statsResponse.json();
     setTrips(tripsData);
     setBill(billData);
+    setStats(statsData);
 
   }
 
@@ -206,6 +230,7 @@ function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
       <ScanPanel onScan={scan} />
       <TripsList trips={trips} />
       {bill && <BillView bill={bill} />}
+      {stats && <StatsView stats={stats} />}
       {error && <p>{error}</p>}
     </>
   )
@@ -244,5 +269,24 @@ function BillView({ bill }: { bill: Bill }) {
   )
 }
 
+
+function StatsView({ stats }: { stats: Stats }) {
+  return (
+    stats.trips_count === 0 ? <p>There are no stats yet</p> : (
+      <>
+        <p>Trips: {stats.trips_count}</p>
+        <p>Paid: {stats.paid}</p>
+        <p>If use only single tickets: {stats.singles_price}</p>
+        <p>Saved money: {stats.singles_price - stats.paid}</p>
+        <Bar
+          data={{
+            labels: stats.per_day.map((perDay) => perDay.day),
+            datasets: [{ label: "Trips", data: stats.per_day.map((perDay) => perDay.trips) }],
+          }}
+        />
+      </>
+    )
+  )
+}
 
 export default App;
