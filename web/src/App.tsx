@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from "react-router";
-
+import { monthBounds } from "./month";
 const API = "http://localhost:8000";
+const ZONES = ["A", "B", "C", "D", "E", "F"];
 
 type Trip = {
   start: string;
@@ -10,6 +11,23 @@ type Trip = {
   to_zone: string;
   zones: number;
 }
+
+type Ticket = {
+  type: string;
+  valid_from: string;
+  price: number;
+}
+
+type Bill = {
+  tickets: Ticket[];
+  total: number;
+}
+
+const TICKET_NAMES: Record<string, string> = {
+  single_ticket: "Single ticket",
+  day_ticket: "Day ticket",
+  weekly_ticket: "Weekly ticket",
+};
 
 
 function App() {
@@ -27,7 +45,7 @@ function App() {
           element={
             token ? (
               <>
-                <TripsList token={token} onLogout={logout} />
+                <Home token={token} onLogout={logout} />
                 <button onClick={logout}>Log out</button>
               </>
             ) : (
@@ -47,7 +65,6 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -125,27 +142,105 @@ function RegisterForm() {
 
 }
 
-function TripsList({ token, onLogout }: { token: string; onLogout: () => void }) {
+
+function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [bill, setBill] = useState<Bill | null>(null);
+  const [error, setError] = useState("");
+
+
+
+  async function load() {
+    const [dateFrom, dateTo] = monthBounds(new Date());
+    const params = new URLSearchParams({
+      date_from: dateFrom.toISOString(),
+      date_to: dateTo.toISOString(),
+    });
+
+    const trips_response = await fetch(`${API}/trips`, { headers: { "Authorization": `Bearer ${token}` } });
+    const bill_response = await fetch(`${API}/bill?${params}`, { headers: { "Authorization": `Bearer ${token}` } });
+    if (!trips_response.ok) {
+      if (trips_response.status === 401) {
+        onLogout();
+      }
+      return;
+    }
+    if (!bill_response.ok) {
+      if (bill_response.status === 401) {
+        onLogout();
+      }
+      return;
+    }
+    const trips_data = await trips_response.json();
+    const bill_data = await bill_response.json();
+    setTrips(trips_data);
+    setBill(bill_data);
+
+  }
 
   useEffect(() => {
-    async function fetchTrips() {
-      const response = await fetch(`${API}/trips`, { headers: { "Authorization": `Bearer ${token}` } });
-      if (!response.ok) {
-        if (response.status === 401) {
-          onLogout();
-        }
-        return;
-      }
-      const data = await response.json();
-      setTrips(data);
-    }
-    fetchTrips();
+    load();
   }, [token]);
 
+  async function scan(scanType: string, zone: string) {
+    setError("");
+    const response = await fetch(`${API}/scans`, {
+      method: "POST",
+      body: JSON.stringify({ scan_type: scanType, timestamp: new Date().toISOString(), zone: zone }),
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+    })
+    if (!response.ok) {
+      if (response.status === 401) {
+        onLogout();
+      } else {
+        setError("Failed to send scan");
+      }
+      return;
+    }
+    await load();
+
+  }
+
   return (
-    trips.length === 0 ? <p>There are no trips yet</p> : <ul> {trips.map((trip) => <li key={trip.start}>{trip.start} — {trip.end} {trip.from_zone} {"->"} {trip.to_zone} ({trip.zones} zones) </li>)} </ul>
+    <>
+      <TripsList trips={trips} />
+      <ScanPanel onScan={scan} />
+      {bill && <BillView bill={bill} />}
+      {error && <p>{error}</p>}
+    </>
   )
 }
+
+
+function TripsList({ trips }: { trips: Trip[] }) {
+  return (
+    trips.length === 0 ? <p>There are no trips yet</p> : <ul> {trips.map((trip) => <li key={trip.start}>{new Date(trip.start + "Z").toLocaleString()} — {new Date(trip.end + "Z").toLocaleString()} {trip.from_zone} {"->"} {trip.to_zone} ({trip.zones} zones) </li>)} </ul>
+  )
+}
+
+function ScanPanel({ onScan }: { onScan: (scanType: string, zone: string) => void }) {
+  const [zone, setZone] = useState(ZONES[0]);
+
+  return (
+    <>
+      <select value={zone} onChange={(e) => setZone(e.target.value)}>
+        {ZONES.map((z) => <option key={z} value={z}>{z}</option>)}
+      </select>
+      <button onClick={() => onScan("check_in", zone)}>Check in</button>
+      <button onClick={() => onScan("check_out", zone)}>Check out</button>
+    </>
+  )
+}
+
+
+function BillView({ bill }: { bill: Bill }) {
+  return (
+    <>
+      {bill.tickets.length === 0 ? <p>There are no tickets yet</p> : <ul> {bill.tickets.map((ticket) => <li key={ticket.type + ticket.valid_from}>{TICKET_NAMES[ticket.type]} valid from {new Date(ticket.valid_from + "Z").toLocaleDateString()} for {ticket.price} </li>)} </ul>}
+      <p>Total: {bill.total}</p>
+    </>
+  )
+}
+
 
 export default App;
