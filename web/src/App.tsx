@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from "react-router";
 import { monthBounds } from "./month";
+import { API, apiFetch } from "./api";
 import "chart.js/auto";
 import { Bar } from "react-chartjs-2";
-const API = "http://localhost:8000";
 const ZONES = ["A", "B", "C", "D", "E", "F"];
 
 type Trip = {
@@ -59,7 +59,7 @@ function App() {
           element={
             token ? (
               <>
-                <Home token={token} onLogout={logout} />
+                <Home onLogout={logout} />
                 <button onClick={logout}>Log out</button>
               </>
             ) : (
@@ -157,13 +157,12 @@ function RegisterForm() {
 }
 
 
-function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
+function Home({ onLogout }: { onLogout: () => void }) {
+
   const [trips, setTrips] = useState<Trip[]>([]);
   const [bill, setBill] = useState<Bill | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState("");
-
-
 
   async function load() {
     const [dateFrom, dateTo] = monthBounds(new Date());
@@ -172,9 +171,9 @@ function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
       date_to: dateTo.toISOString(),
     });
 
-    const tripsResponse = await fetch(`${API}/trips`, { headers: { "Authorization": `Bearer ${token}` } });
-    const billResponse = await fetch(`${API}/bill?${params}`, { headers: { "Authorization": `Bearer ${token}` } });
-    const statsResponse = await fetch(`${API}/stats?${params}`, { headers: { "Authorization": `Bearer ${token}` } });
+    const tripsResponse = await apiFetch(`/trips`);
+    const billResponse = await apiFetch(`/bill?${params}`);
+    const statsResponse = await apiFetch(`/stats?${params}`);
     if (!tripsResponse.ok) {
       if (tripsResponse.status === 401) {
         onLogout();
@@ -204,15 +203,15 @@ function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
 
   useEffect(() => {
     load();
-  }, [token]);
+  }, []);
 
   async function scan(scanType: string, zone: string) {
     setError("");
-    const response = await fetch(`${API}/scans`, {
+    const response = await apiFetch(`/scans`, {
+      headers: { "Content-Type": "application/json" },
       method: "POST",
-      body: JSON.stringify({ scan_type: scanType, timestamp: new Date().toISOString(), zone: zone }),
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-    })
+      body: JSON.stringify({ scan_type: scanType, timestamp: new Date().toISOString(), zone: zone })
+    });
     if (!response.ok) {
       if (response.status === 401) {
         onLogout();
