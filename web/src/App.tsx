@@ -157,24 +157,24 @@ function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
       date_to: dateTo.toISOString(),
     });
 
-    const trips_response = await fetch(`${API}/trips`, { headers: { "Authorization": `Bearer ${token}` } });
-    const bill_response = await fetch(`${API}/bill?${params}`, { headers: { "Authorization": `Bearer ${token}` } });
-    if (!trips_response.ok) {
-      if (trips_response.status === 401) {
+    const tripsResponse = await fetch(`${API}/trips`, { headers: { "Authorization": `Bearer ${token}` } });
+    const billResponse = await fetch(`${API}/bill?${params}`, { headers: { "Authorization": `Bearer ${token}` } });
+    if (!tripsResponse.ok) {
+      if (tripsResponse.status === 401) {
         onLogout();
       }
       return;
     }
-    if (!bill_response.ok) {
-      if (bill_response.status === 401) {
+    if (!billResponse.ok) {
+      if (billResponse.status === 401) {
         onLogout();
       }
       return;
     }
-    const trips_data = await trips_response.json();
-    const bill_data = await bill_response.json();
-    setTrips(trips_data);
-    setBill(bill_data);
+    const tripsData = await tripsResponse.json();
+    const billData = await billResponse.json();
+    setTrips(tripsData);
+    setBill(billData);
 
   }
 
@@ -203,8 +203,8 @@ function Home({ token, onLogout }: { token: string; onLogout: () => void }) {
 
   return (
     <>
-      <TripsList trips={trips} />
       <ScanPanel onScan={scan} />
+      <TripsList trips={trips} />
       {bill && <BillView bill={bill} />}
       {error && <p>{error}</p>}
     </>
@@ -235,10 +235,12 @@ function ScanPanel({ onScan }: { onScan: (scanType: string, zone: string) => voi
 
 function BillView({ bill }: { bill: Bill }) {
   return (
-    <>
-      {bill.tickets.length === 0 ? <p>There are no tickets yet</p> : <ul> {bill.tickets.map((ticket) => <li key={ticket.type + ticket.valid_from}>{TICKET_NAMES[ticket.type]} valid from {new Date(ticket.valid_from + "Z").toLocaleDateString()} for {ticket.price} </li>)} </ul>}
-      <p>Total: {bill.total}</p>
-    </>
+    bill.tickets.length === 0 ? <p>There are no tickets yet</p> : (
+      <>
+        <ul> {bill.tickets.map((ticket) => <li key={ticket.type + ticket.valid_from}>{TICKET_NAMES[ticket.type]} valid from {new Date(ticket.valid_from + "Z").toLocaleDateString()} for {ticket.price} </li>)} </ul>
+        <p>Total: {bill.total}</p>
+      </>
+    )
   )
 }
 
