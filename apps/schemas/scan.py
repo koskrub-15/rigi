@@ -1,12 +1,22 @@
 from datetime import datetime
-
-# from typing import Optional
 from apps.core.datetimes import to_naive_utc
 from apps.core.enums import ScanType
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, AfterValidator, Field
+
+from typing import Annotated
+
+from apps.core.security import decode_zone_token
 
 
-from apps.core.zones import Zone
+def check_zone_code(value: str) -> str:
+    """Decode a signed zone code and return the zone it points to."""
+    zone = decode_zone_token(value)
+    if zone is None:
+        raise ValueError("invalid zone code")
+    return zone
+
+
+ZoneCode = Annotated[str, AfterValidator(check_zone_code)]
 
 
 class ScanCreate(BaseModel):
@@ -14,7 +24,7 @@ class ScanCreate(BaseModel):
 
     scan_type: ScanType
     timestamp: datetime
-    zone: Zone
+    zone: ZoneCode = Field(validation_alias="code")
 
     @field_validator("timestamp")
     @classmethod

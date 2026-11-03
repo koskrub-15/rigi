@@ -3,7 +3,7 @@ from datetime import timedelta
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.core.security import create_access_token
+from apps.core.security import create_access_token, create_zone_token
 from apps.CRUD.user import create_user
 from apps.schemas.user import UserCreate
 
@@ -136,7 +136,12 @@ async def test_users_only_see_their_own_trips(
         ("check_out", "2026-10-14T08:30"),
     ]:
         response = await other_client.post(
-            "/scans", json={"scan_type": scan_type, "timestamp": timestamp, "zone": "A"}
+            "/scans",
+            json={
+                "scan_type": scan_type,
+                "timestamp": timestamp,
+                "code": create_zone_token("A"),
+            },
         )
         assert response.status_code == 201
 
