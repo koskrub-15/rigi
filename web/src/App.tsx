@@ -4,7 +4,8 @@ import { monthBounds } from "./month";
 import { API, apiFetch } from "./api";
 import "chart.js/auto";
 import { Bar } from "react-chartjs-2";
-const ZONES = ["A", "B", "C", "D", "E", "F"];
+
+
 
 type Trip = {
   start: string;
@@ -206,12 +207,12 @@ function Home({ onLogout }: { onLogout: () => void }) {
     load();
   }, []);
 
-  async function scan(scanType: string, zone: string) {
+  async function scan(scanType: string, code: string) {
     setError("");
     const response = await apiFetch(`/scans`, {
       headers: { "Content-Type": "application/json" },
       method: "POST",
-      body: JSON.stringify({ scan_type: scanType, timestamp: new Date().toISOString(), zone: zone })
+      body: JSON.stringify({ scan_type: scanType, timestamp: new Date().toISOString(), code: code })
     });
     if (!response.ok) {
       if (response.status === 401) {
@@ -243,21 +244,20 @@ function TripsList({ trips }: { trips: Trip[] }) {
   )
 }
 
-function ScanPanel({ onScan }: { onScan: (scanType: string, zone: string) => void }) {
-  const [zone, setZone] = useState(ZONES[0]);
+function ScanPanel({ onScan }: { onScan: (scanType: string, code: string) => void }) {
+  const [code, setCode] = useState("");
 
   return (
     <>
-      <select value={zone} onChange={(e) => setZone(e.target.value)}>
-        {ZONES.map((z) => <option key={z} value={z}>{z}</option>)}
-      </select>
-      <button onClick={() => onScan("check_in", zone)}>Check in</button>
-      <button onClick={() => onScan("check_out", zone)}>Check out</button>
+      <input value={code} onChange={(e) => setCode(e.target.value)} />
+      <button onClick={() => onScan("check_in", code)}>Check in</button>
+      <button onClick={() => onScan("check_out", code)}>Check out</button>
     </>
   )
 }
 
 
+//
 function BillView({ bill }: { bill: Bill }) {
   return (
     bill.tickets.length === 0 ? <p>There are no tickets yet</p> : (
