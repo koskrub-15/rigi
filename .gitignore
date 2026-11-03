@@ -33,8 +33,6 @@
 !.pre-commit-config.yaml
 !.github/
 !.github/**
-!front/
-!front/**
 !web/
 !web/**
 !IDEAS.md
