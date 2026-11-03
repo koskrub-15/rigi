@@ -1,3 +1,5 @@
+let tokenPromise: Promise<boolean> | null = null;
+
 export const API = "http://localhost:8000";
 
 
@@ -25,6 +27,16 @@ function getHeaders(initHeaders: HeadersInit | undefined): Headers {
 
 
 async function refreshTokens(): Promise<boolean> {
+  if (tokenPromise === null) {
+    tokenPromise = fetchTokens();
+  }
+  const result = await tokenPromise;
+  tokenPromise = null;
+  return result;
+}
+
+
+async function fetchTokens(): Promise<boolean> {
   if (localStorage.getItem("refresh_token") === null) {
     return false;
   }
