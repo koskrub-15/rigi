@@ -47,6 +47,7 @@ const TICKET_NAMES: Record<string, string> = {
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access_token"));
   function logout() {
+    fetch(`${API}/auth/logout`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh_token: localStorage.getItem("refresh_token") }) });
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     setToken(null);
