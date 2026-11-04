@@ -8,7 +8,7 @@
 !compose.yaml
 !compose.override.dev.yaml
 !Dockerfile
-!Dockerfile.dockerignore
+!.dockerignore
 !docker-entrypoint.sh
 !codecov.yml
 !justfile
