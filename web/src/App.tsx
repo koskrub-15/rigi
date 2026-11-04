@@ -4,6 +4,7 @@ import { monthBounds } from "./month";
 import { API, apiFetch } from "./api";
 import "chart.js/auto";
 import { Bar } from "react-chartjs-2";
+import { Scanner, type IDetectedBarcode } from "@yudiel/react-qr-scanner";
 
 
 
@@ -246,12 +247,39 @@ function TripsList({ trips }: { trips: Trip[] }) {
 
 function ScanPanel({ onScan }: { onScan: (scanType: string, code: string) => void }) {
   const [code, setCode] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState("");
+
+
+  function handleScan(results: IDetectedBarcode[]) {
+    if (results.length === 0) {
+      return;
+    }
+    setCode(results[0].rawValue);
+    setScanning(false);
+  }
+
+  function handleError() {
+    setError("Camera is not available");
+    setScanning(false);
+  }
 
   return (
     <>
       <input value={code} onChange={(e) => setCode(e.target.value)} />
       <button onClick={() => onScan("check_in", code)}>Check in</button>
       <button onClick={() => onScan("check_out", code)}>Check out</button>
+      <button onClick={() => setScanning(true)}>Scan QR-Code</button>
+      {scanning &&
+        <>
+          <Scanner
+            onScan={handleScan}
+            onError={handleError}
+            formats={["qr_code"]}
+          />
+        </>
+      }
+      {error && <p>{error}</p>}
     </>
   )
 }
