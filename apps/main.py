@@ -13,4 +13,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health", tags=["Health"], summary="Liveness probe")
+async def health() -> dict[str, str]:
+    """Return service liveness status for load balancers and uptime checks."""
+    return {"status": "ok"}
+
+
 app.include_router(api_router)
