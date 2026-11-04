@@ -250,7 +250,6 @@ function ScanPanel({ onScan }: { onScan: (scanType: string, code: string) => voi
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
 
-
   function handleScan(results: IDetectedBarcode[]) {
     if (results.length === 0) {
       return;
@@ -264,24 +263,31 @@ function ScanPanel({ onScan }: { onScan: (scanType: string, code: string) => voi
     setScanning(false);
   }
 
+  function toggleScanning() {
+    setError("");
+    setScanning((prev) => !prev);
+  }
+
+  const noCode = code.trim() === "";
+
   return (
     <>
       <input value={code} onChange={(e) => setCode(e.target.value)} />
-      <button onClick={() => onScan("check_in", code)}>Check in</button>
-      <button onClick={() => onScan("check_out", code)}>Check out</button>
-      <button onClick={() => setScanning(true)}>Scan QR-Code</button>
-      {scanning &&
-        <>
-          <Scanner
-            onScan={handleScan}
-            onError={handleError}
-            formats={["qr_code"]}
-          />
-        </>
-      }
+      <button disabled={noCode} onClick={() => onScan("check_in", code)}>Check in</button>
+      <button disabled={noCode} onClick={() => onScan("check_out", code)}>Check out</button>
+      <button onClick={toggleScanning}>
+        {scanning ? "Cancel" : "Scan QR-Code"}
+      </button>
+      {scanning && (
+        <Scanner
+          onScan={handleScan}
+          onError={handleError}
+          formats={["qr_code"]}
+        />
+      )}
       {error && <p>{error}</p>}
     </>
-  )
+  );
 }
 
 
