@@ -36,7 +36,7 @@
 !web/
 !web/**
 !IDEAS.md
-
+!fly.toml
 
 # = = = = = blacklist = = = = = #
 __pycache__/
