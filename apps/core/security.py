@@ -8,6 +8,9 @@ from pwdlib.hashers.argon2 import Argon2Hasher
 
 from apps.core.config import settings
 
+from apps.core.zones import check_zone
+
+
 TokenType = Literal["access", "refresh"]
 
 password_hash = PasswordHash((Argon2Hasher(),))
@@ -89,3 +92,30 @@ def decode_refresh_token(token: str) -> dict[str, Any] | None:
         Payload dict with 'sub', 'jti', 'exp' keys, or None if invalid/expired.
     """
     return _decode_token(token, "refresh")
+
+
+def create_zone_token(zone: str) -> str:
+    payload: dict[str, Any] = {
+        "type": "zone",
+        "zone": zone,
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_zone_token(token: str) -> str | None:
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+            options={"require": ["type", "zone"]},
+        )
+    except jwt.InvalidTokenError:
+        return None
+    if payload["type"] != "zone":
+        return None
+    try:
+        check_zone(payload["zone"])
+    except ValueError:
+        return None
+    return payload["zone"]

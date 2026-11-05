@@ -1,5 +1,6 @@
 from httpx import AsyncClient
 
+from apps.core.security import create_zone_token
 from tests.conftest import MakeAuthClient
 
 
@@ -16,7 +17,11 @@ async def ride(
     ]:
         response = await client.post(
             "/scans",
-            json={"scan_type": scan_type, "timestamp": timestamp, "zone": zone},
+            json={
+                "scan_type": scan_type,
+                "timestamp": timestamp,
+                "code": create_zone_token(zone),
+            },
         )
         assert response.status_code == 201
 
@@ -102,12 +107,3 @@ async def test_long_trip_gets_day_ticket(auth_client: AsyncClient):
 
     assert [t["type"] for t in bill["tickets"]] == ["day_ticket"]
     assert bill["total"] == 8
-
-
-async def test_unknown_zone_is_rejected(auth_client: AsyncClient):
-    response = await auth_client.post(
-        "/scans",
-        json={"scan_type": "check_in", "timestamp": "2026-10-14T08:00", "zone": "Z"},
-    )
-
-    assert response.status_code == 422

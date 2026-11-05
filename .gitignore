@@ -8,14 +8,13 @@
 !compose.yaml
 !compose.override.dev.yaml
 !Dockerfile
-!Dockerfile.dockerignore
+!.dockerignore
 !docker-entrypoint.sh
 !codecov.yml
 !justfile
 !just/
 !just/**
 !README.md
-!CLAUDE.md
 !CONTRIBUTING.md
 !LICENSE
 !files/
@@ -36,7 +35,7 @@
 !web/
 !web/**
 !IDEAS.md
-
+!fly.toml
 
 # = = = = = blacklist = = = = = #
 __pycache__/
