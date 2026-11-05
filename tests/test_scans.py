@@ -44,9 +44,7 @@ async def test_valid_zone_code_creates_scan_with_its_zone(auth_client: AsyncClie
         pytest.param("junk", id="junk"),
     ],
 )
-async def test_invalid_zone_code_is_rejected(
-    auth_client: AsyncClient, code: str
-):
+async def test_invalid_zone_code_is_rejected(auth_client: AsyncClient, code: str):
     response = await auth_client.post(
         "/scans",
         json={
