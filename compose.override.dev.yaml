@@ -44,7 +44,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     # Pulled from .env so they always match DATABASE_URL used by the app.
-    # Fixed example values instead: POSTGRES_DB=habit_api_db / POSTGRES_USER=user / POSTGRES_PASSWORD=password
+    # Fixed example values instead: POSTGRES_DB=rigi_api_db / POSTGRES_USER=user / POSTGRES_PASSWORD=password
     environment:
       - POSTGRES_DB
       - POSTGRES_USER
