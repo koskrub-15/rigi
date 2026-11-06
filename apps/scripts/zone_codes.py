@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 import segno
@@ -26,5 +27,27 @@ def generate_zone_qr_codes(output_dir: Path, scale: int = 10) -> None:
         print(f"{zone}: {qrcode.designator} -> {token}")
 
 
+def build_parser() -> argparse.ArgumentParser:
+    """Build the CLI parser for the QR generation script."""
+    parser = argparse.ArgumentParser(
+        description="Generate signed QR codes for every zone.",
+    )
+    parser.add_argument(
+        "output_dir",
+        nargs="?",
+        type=Path,
+        default=OUTPUT_DIR,
+        help="directory for PNG files (default: %(default)s)",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Parse CLI arguments and generate QR codes."""
+    args = build_parser().parse_args(argv)
+    generate_zone_qr_codes(args.output_dir)
+    return 0
+
+
 if __name__ == "__main__":
-    generate_zone_qr_codes(OUTPUT_DIR)
+    raise SystemExit(main())
