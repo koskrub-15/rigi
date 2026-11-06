@@ -44,4 +44,4 @@ def test_rejects_extra_arguments(default_dir: Path, tmp_path: Path) -> None:
     """Unexpected arguments fail loudly instead of being ignored."""
     with pytest.raises(SystemExit) as exc_info:
         zone_codes.main([str(tmp_path), "extra"])
-    assert exc_info.value.code == 2  # код ошибки использования у argparse
+    assert exc_info.value.code == 2
