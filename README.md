@@ -8,8 +8,10 @@ get on and when you get off — at the end of the period Rigi looks at the trips
 actually made and charges you for the **cheapest combination** of single, day and
 week tickets. No ticket machine, no guessing which pass pays off.
 
+> Live app: **[rigi-web.fly.dev](https://rigi-web.fly.dev)** — open it on a phone and
+> install it from the browser menu.
 > Live API: **[rigi-api.fly.dev/docs](https://rigi-api.fly.dev/docs)** (Swagger UI).
-> The machine sleeps when idle, so the first request takes a couple of seconds.
+> The machines sleep when idle, so the first request takes a few seconds.
 
 ---
 
@@ -43,6 +45,9 @@ week tickets. No ticket machine, no guessing which pass pays off.
   have cost as single tickets, drawn with Chart.js.
 - **⚛️ React front** — login, registration, camera scanning, trips, bill and stats;
   the access token is refreshed silently on `401`.
+- **📱 Installable PWA** — web app manifest and a service worker: Rigi installs to the
+  home screen and opens without a network (network-first cache of the app itself;
+  API data is never served stale).
 
 ### 💶 Tariffs
 
@@ -125,8 +130,8 @@ PyJWT · Argon2 · segno (QR codes)
 **Frontend:** React 19 · TypeScript · Vite · React Router · Chart.js ·
 `@yudiel/react-qr-scanner`
 
-**Infrastructure:** Docker · Fly.io · Neon (serverless Postgres) · GitHub Actions ·
-Codecov · uv
+**Infrastructure:** Docker · nginx · Fly.io · Neon (serverless Postgres) ·
+GitHub Actions · Codecov · uv
 
 **Quality:** pytest · Vitest · ruff · mypy · prettier · pre-commit · pip-audit
 
@@ -172,6 +177,11 @@ npm ci
 npm run dev                          # → http://localhost:5173
 ```
 
+The service worker is registered only in production builds, so try the PWA with
+`npm run build && npm run preview` (→ http://localhost:4173). The API allows only
+`:5173` by default; add the preview origin in `.env`:
+`CORS_ORIGINS=["http://localhost:5173","http://localhost:4173"]`.
+
 ### 🏷️ Zone codes
 
 ```bash
@@ -194,8 +204,10 @@ cd web && npx vitest run             # front tests
 
 CI runs on every pull request: tests with coverage, front build and tests,
 pre-commit (ruff, mypy, prettier) and a dependency audit. A push to `main` deploys
-the API to Fly.io once the `DEPLOY_ENABLED` repository variable is on; migrations
-run as a release command before the new version goes live.
+both apps to Fly.io once the `DEPLOY_ENABLED` repository variable is on: the API
+(migrations run as a release command before the new version goes live) and the
+front (a multi-stage build — Vite in Node, then static files served by nginx). Each
+app has its own deploy token.
 
 ---
 
@@ -206,8 +218,8 @@ run as a release command before the new version goes live.
 - [x] React front with routing
 - [x] Signed zone QR codes, scanning with the camera
 - [x] API deployed on Fly.io with Neon Postgres, CI/CD
-- [ ] Front on Fly.io, scanning from a phone
-- [ ] PWA
+- [x] Front on Fly.io, scanning from a phone
+- [x] Installable PWA that opens offline
 - [ ] Closing a billing period, test payments with Stripe
 - [ ] Zone-based day and week tickets, an all-zones ticket
 
@@ -215,3 +227,4 @@ run as a release command before the new version goes live.
 
 - A zone code never expires, so a photo of it works anywhere. Rotating codes or a
   location check would fix that.
+- Offline, the app opens but shows no data: scans, trips and the bill need the API.
