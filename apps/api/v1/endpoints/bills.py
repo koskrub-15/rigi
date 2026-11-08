@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 from collections.abc import Sequence
-from apps.CRUD.bill import create_bill_model, get_bills
+from apps.CRUD.bill import create_bill_model, get_bills, get_bill
 from apps.core.tariffs import MAX_TRIP_DURATION
 from apps.db.session import get_db
 from apps.models.bill import BillModel
-from apps.schemas.bill import BillResponse, ClosedBillResponse
+from apps.schemas.bill import BillResponse, ClosedBillResponse, PaymentResponse
 from apps.services.trips import get_trips
 from apps.services.optimizer import optimizer, total_price
 from fastapi import APIRouter, Depends, status, Path, HTTPException
@@ -13,6 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from apps.api.deps import get_current_user
 from apps.models.user import User
 from apps.services.month import month_bounds_utc
+from apps.services.payments import create_payment_url
+import stripe
+
 
 bill_router = APIRouter(prefix="/bills", tags=["bill"])
 
@@ -34,6 +37,29 @@ async def create_bill(
     )
     tickets = optimizer(trips=trips)
     return BillResponse(tickets=tickets, total=total_price(tickets))
+
+
+@bill_router.post("/{bill_id}/payment", response_model=PaymentResponse)
+async def pay_bill(
+    bill_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PaymentResponse:
+    bill = await get_bill(bill_id=bill_id, db=db, user_id=current_user.id)
+    if bill is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Bill doesn't exist"
+        )
+    if bill.total != 0:
+        try:
+            return PaymentResponse(url=await create_payment_url(bill=bill))
+        except stripe.StripeError as e:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY) from e
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Bill is empty"
+        )
 
 
 @bill_router.post(

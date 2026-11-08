@@ -8,3 +8,5 @@ tariffs = {
     TicketType.DAY_TICKET: 8,  # now all zones included
     TicketType.WEEKLY_TICKET: 25,  # now all zones included
 }
+
+currency = "eur"

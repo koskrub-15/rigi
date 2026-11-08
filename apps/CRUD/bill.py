@@ -38,3 +38,12 @@ async def get_bills(db: AsyncSession, user_id: int) -> Sequence[BillModel]:
         .order_by(BillModel.year.desc(), BillModel.month.desc())
     )
     return result.all()
+
+
+async def get_bill(db: AsyncSession, user_id: int, bill_id: int) -> BillModel | None:
+    result = await db.scalars(
+        select(BillModel)
+        .where(BillModel.user_id == user_id)
+        .where(BillModel.id == bill_id)
+    )
+    return result.one_or_none()
