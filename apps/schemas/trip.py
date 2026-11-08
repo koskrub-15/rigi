@@ -15,3 +15,4 @@ class TripResponse(BaseModel):
     from_zone: Zone
     to_zone: Zone
     zones: int = Field(ge=1)
+    forgotten: bool = False

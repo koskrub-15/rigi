@@ -28,8 +28,8 @@ week tickets. No ticket machine, no guessing which pass pays off.
    right in the browser.
 2. A `check_in` and the following `check_out` become a **trip**; the number of
    zones travelled is the shortest path between the two zones.
-3. `GET /bill` runs the **optimizer** over the period and returns the tickets you pay
-   for.
+3. `GET /bills/preview` runs the **optimizer** over any period; at the end of a
+   month `POST /bills/{year}/{month}` closes it and stores the bill for good.
 
 ### ✨ Features
 
@@ -39,6 +39,8 @@ week tickets. No ticket machine, no guessing which pass pays off.
   path found with **BFS**.
 - **🔏 Signed zone QR codes** — each code is a JWT `{"type": "zone", "zone": "C"}`.
   Forged codes, codes of another token type and unknown zones are rejected with `422`.
+- **🧾 Closed bills** — a finished month is closed once and stored; a check-in
+  without a check-out within 3 hours is billed as a trip to the farthest zone.
 - **🔐 Authentication** — JWT access/refresh tokens with rotation and revocation,
   Argon2 password hashing; the user always comes from the token, never from the URL.
 - **📊 Statistics** — trips per day, the amount paid and what the same trips would
@@ -94,7 +96,7 @@ curl -X POST $BASE/scans -H "Authorization: Bearer $TOKEN" -H "Content-Type: app
 # ... D → A in the evening, A → B on Tuesday ...
 
 # 3. The bill for November
-curl "$BASE/bill?date_from=2026-11-01T00:00:00Z&date_to=2026-12-01T00:00:00Z" \
+curl "$BASE/bills/preview?date_from=2026-11-01T00:00:00Z&date_to=2026-12-01T00:00:00Z" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -116,7 +118,8 @@ Tuesday's 2-zone trip stays a single:
 | `POST /auth/register` · `/login` · `/refresh` · `/logout` | accounts and tokens                        |
 | `POST /scans`                                             | check in or out with a zone code           |
 | `GET /trips`                                              | trips of a period                          |
-| `GET /bill`                                               | optimal tickets and the total for a period |
+| `GET /bills/preview`                                      | optimal tickets and the total for a period |
+| `POST /bills/{year}/{month}` · `GET /bills`               | close a finished month, list closed bills  |
 | `GET /stats`                                              | trips per day and paid amount              |
 | `GET /health`                                             | liveness check                             |
 

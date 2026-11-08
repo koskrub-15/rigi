@@ -3,7 +3,7 @@ from apps.schemas.stats import StatsResponse
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from apps.services.optimizer import get_price_of_single_ticket, optimizer, total_price
-from datetime import datetime
+from datetime import datetime, timezone
 from apps.services.trips import get_trips, trips_per_day
 from apps.models.user import User
 from apps.api.deps import get_current_user
@@ -21,7 +21,11 @@ async def get_stats_endpoint(
 ) -> StatsResponse:
     """Get users stats"""
     trips = await get_trips(
-        user_id=current_user.id, date_from=date_from, date_to=date_to, db=db
+        user_id=current_user.id,
+        date_from=date_from,
+        date_to=date_to,
+        now=datetime.now(timezone.utc),
+        db=db,
     )
     tickets = optimizer(trips=trips)
     total = total_price(tickets)

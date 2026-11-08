@@ -222,7 +222,7 @@ function Home({ onLogout }: { onLogout: () => void }) {
     });
 
     const tripsResponse = await apiFetch(`/trips`);
-    const billResponse = await apiFetch(`/bill?${params}`);
+    const billResponse = await apiFetch(`/bills/preview?${params}`);
     const statsResponse = await apiFetch(`/stats?${params}`);
     if (!tripsResponse.ok) {
       if (tripsResponse.status === 401) {
