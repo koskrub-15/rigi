@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from apps.db.session import get_db
 from apps.schemas.bill import BillResponse
@@ -22,7 +22,11 @@ async def create_bill(
 ) -> BillResponse:
     """Create a month bill"""
     trips = await get_trips(
-        user_id=current_user.id, date_from=date_from, date_to=date_to, db=db
+        user_id=current_user.id,
+        date_from=date_from,
+        date_to=date_to,
+        now=datetime.now(timezone.utc),
+        db=db,
     )
     tickets = optimizer(trips=trips)
     return BillResponse(tickets=tickets, total=total_price(tickets))

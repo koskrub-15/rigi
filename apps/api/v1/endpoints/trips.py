@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from apps.db.session import get_db
 from apps.schemas.trip import TripResponse
 from fastapi import APIRouter, Depends
@@ -16,4 +18,7 @@ async def build_trips_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> list[TripResponse]:
     """Create trips"""
-    return build_trips(scans=await get_scans(db=db, user_id=current_user.id))
+    return build_trips(
+        scans=await get_scans(db=db, user_id=current_user.id),
+        now=datetime.now(timezone.utc),
+    )

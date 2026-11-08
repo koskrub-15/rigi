@@ -1,11 +1,11 @@
 from collections.abc import Sequence
 from collections import defaultdict
 from apps.core.enums import ScanType
+from apps.core.tariffs import MAX_TRIP_DURATION
 from apps.models.scan import ScanModel
 from apps.schemas.stats import PerDaySchema
 from apps.schemas.trip import TripResponse
-
-from datetime import datetime, date
+from datetime import date, datetime
 from apps.core.datetimes import to_naive_utc
 from sqlalchemy.ext.asyncio import AsyncSession
 from apps.CRUD.scan import get_scans
@@ -14,29 +14,40 @@ from apps.core.zones import ZONES_GRAPH
 from typing import Mapping
 
 
-def build_trips(scans: Sequence[ScanModel]) -> list[TripResponse]:
+def build_trips(scans: Sequence[ScanModel], now: datetime) -> list[TripResponse]:
+    now = to_naive_utc(now)
     opened: ScanModel | None = None
     trips: list[TripResponse] = []
     for el in scans:
         if opened is not None:
-            trips.append(
-                TripResponse(
-                    start=opened.timestamp,
-                    end=el.timestamp,
-                    from_zone=opened.zone,
-                    to_zone=el.zone,
-                    zones=len(
-                        bfs_zones(
-                            graph=ZONES_GRAPH,
-                            start_zone=opened.zone,
-                            end_zone=el.zone,
-                        )
-                    ),
+            difference = el.timestamp - opened.timestamp
+            if difference < MAX_TRIP_DURATION and el.scan_type == ScanType.CHECK_OUT:
+                trips.append(
+                    TripResponse(
+                        start=opened.timestamp,
+                        end=el.timestamp,
+                        from_zone=opened.zone,
+                        to_zone=el.zone,
+                        forgotten=False,
+                        zones=len(
+                            bfs_zones(
+                                graph=ZONES_GRAPH,
+                                start_zone=opened.zone,
+                                end_zone=el.zone,
+                            )
+                        ),
+                    )
                 )
-            )
+            else:
+                trips.append(make_farthest_trip(graph=ZONES_GRAPH, opened=opened))
             opened = None
         if el.scan_type == ScanType.CHECK_IN:
             opened = el
+    if opened is not None:
+        difference = now - opened.timestamp
+        if difference >= MAX_TRIP_DURATION:
+            trips.append(make_farthest_trip(graph=ZONES_GRAPH, opened=opened))
+
     return trips
 
 
@@ -84,10 +95,39 @@ async def get_trips(
     user_id: int,
     date_from: datetime,
     date_to: datetime,
+    now: datetime,
     db: AsyncSession,
 ) -> list[TripResponse]:
     """Get list of trips for user in given date range"""
     date_from, date_to = to_naive_utc(date_from), to_naive_utc(date_to)
-    trips = build_trips(scans=await get_scans(db=db, user_id=user_id))
+    trips = build_trips(
+        scans=await get_scans(
+            db=db,
+            user_id=user_id,
+        ),
+        now=now,
+    )
     trips = [trip for trip in trips if date_from <= trip.start < date_to]
     return trips
+
+
+def farthest_path(graph: Mapping[str, tuple[str, ...]], start_zone: str) -> list[str]:
+    longest_trip: dict[int, list[str]] = {}
+    for zone in graph.keys():
+        result = bfs_zones(graph=graph, start_zone=start_zone, end_zone=zone)
+        longest_trip[len(result)] = result
+    return longest_trip[max(longest_trip)]
+
+
+def make_farthest_trip(
+    graph: Mapping[str, tuple[str, ...]], opened: ScanModel
+) -> TripResponse:
+    longest_trip = farthest_path(graph=graph, start_zone=opened.zone)
+    return TripResponse(
+        start=opened.timestamp,
+        end=opened.timestamp + MAX_TRIP_DURATION,
+        from_zone=opened.zone,
+        forgotten=True,
+        to_zone=longest_trip[-1],
+        zones=len(longest_trip),
+    )
