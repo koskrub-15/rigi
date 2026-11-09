@@ -30,6 +30,8 @@ week tickets. No ticket machine, no guessing which pass pays off.
    zones travelled is the shortest path between the two zones.
 3. `GET /bills/preview` runs the **optimizer** over any period; at the end of a
    month `POST /bills/{year}/{month}` closes it and stores the bill for good.
+4. `POST /bills/{id}/payment` opens a **Stripe** payment page (test mode); Stripe's
+   webhook marks the bill paid.
 
 ### ✨ Features
 
@@ -41,6 +43,8 @@ week tickets. No ticket machine, no guessing which pass pays off.
   Forged codes, codes of another token type and unknown zones are rejected with `422`.
 - **🧾 Closed bills** — a finished month is closed once and stored; a check-in
   without a check-out within 3 hours is billed as a trip to the farthest zone.
+- **💳 Payments** — Stripe Checkout in test mode: the card is entered on Stripe's
+  page, and only the signed webhook, never the redirect, marks a bill paid.
 - **🔐 Authentication** — JWT access/refresh tokens with rotation and revocation,
   Argon2 password hashing; the user always comes from the token, never from the URL.
 - **📊 Statistics** — trips per day, the amount paid and what the same trips would
@@ -120,6 +124,8 @@ Tuesday's 2-zone trip stays a single:
 | `GET /trips`                                              | trips of a period                          |
 | `GET /bills/preview`                                      | optimal tickets and the total for a period |
 | `POST /bills/{year}/{month}` · `GET /bills`               | close a finished month, list closed bills  |
+| `POST /bills/{id}/payment`                                | Stripe payment page for a closed bill      |
+| `POST /stripe/webhook`                                    | Stripe marks a bill paid                   |
 | `GET /stats`                                              | trips per day and paid amount              |
 | `GET /health`                                             | liveness check                             |
 
@@ -128,7 +134,7 @@ Tuesday's 2-zone trip stays a single:
 ## 🛠️ Tech stack
 
 **Backend:** FastAPI · async SQLAlchemy 2 · Pydantic v2 · Alembic · PostgreSQL ·
-PyJWT · Argon2 · segno (QR codes)
+PyJWT · Argon2 · segno (QR codes) · Stripe
 
 **Frontend:** React 19 · TypeScript · Vite · React Router · Chart.js ·
 `@yudiel/react-qr-scanner`
@@ -223,7 +229,7 @@ app has its own deploy token.
 - [x] API deployed on Fly.io with Neon Postgres, CI/CD
 - [x] Front on Fly.io, scanning from a phone
 - [x] Installable PWA that opens offline
-- [ ] Closing a billing period, test payments with Stripe
+- [x] Closing a billing period, test payments with Stripe
 - [ ] Zone-based day and week tickets, an all-zones ticket
 
 ### Known limitations
