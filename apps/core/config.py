@@ -18,8 +18,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
     STRIPE_SECRET_KEY: str = ""
     WEB_URL: str = "http://localhost:5173"
+    STRIPE_WEBHOOK_SECRET: str = ""
 
 
 settings = Settings()  # pyright: ignore[reportCallIssue]

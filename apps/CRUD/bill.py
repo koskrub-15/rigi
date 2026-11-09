@@ -16,9 +16,12 @@ async def create_bill_model(
     closed_at: datetime,
 ) -> BillModel | None:
     create_data = bill.model_dump(mode="json")
-    model = BillModel
-    db_obj = model(
-        user_id=user_id, year=year, month=month, closed_at=closed_at, **create_data
+    db_obj = BillModel(
+        user_id=user_id,
+        year=year,
+        month=month,
+        closed_at=closed_at,
+        **create_data,
     )
     db.add(db_obj)
     try:
@@ -47,3 +50,11 @@ async def get_bill(db: AsyncSession, user_id: int, bill_id: int) -> BillModel | 
         .where(BillModel.id == bill_id)
     )
     return result.one_or_none()
+
+
+async def pay(db: AsyncSession, bill_id: int, now: datetime) -> None:
+    bill = await db.get(BillModel, bill_id)
+    if bill is not None:
+        if bill.paid_at is None:
+            bill.paid_at = now
+            await db.commit()
