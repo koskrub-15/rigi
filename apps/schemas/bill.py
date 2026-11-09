@@ -15,3 +15,9 @@ class ClosedBillResponse(BillResponse):
     year: int
     month: int
     closed_at: datetime
+    paid_at: datetime | None
+
+
+class PaymentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    url: str

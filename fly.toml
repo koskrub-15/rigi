@@ -16,6 +16,7 @@ release_command = "alembic upgrade head"
 PROJECT_NAME = "Rigi"
 API_BASE_URL = "https://rigi-api.fly.dev/"
 CORS_ORIGINS = '["https://rigi-web.fly.dev"]'
+WEB_URL = "https://rigi-web.fly.dev"
 
 [http_service]
 internal_port = 8000
