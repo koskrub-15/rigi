@@ -82,6 +82,19 @@ async def test_pay_bill_rejects_zero_total(
     assert response.status_code == 409
 
 
+async def test_pay_bill_rejects_already_paid_bill(
+    auth_client: AsyncClient, db_session: AsyncSession
+):
+    bill = await add_bill(db_session, "user@example.com", total=12)
+    bill.paid_at = datetime.now(timezone.utc)
+    await db_session.commit()
+
+    response = await auth_client.post(f"/bills/{bill.id}/payment")
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Bill is already paid"
+
+
 async def test_pay_bill_maps_stripe_error_to_bad_gateway(
     auth_client: AsyncClient,
     db_session: AsyncSession,

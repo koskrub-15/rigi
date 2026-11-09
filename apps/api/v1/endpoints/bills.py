@@ -50,6 +50,10 @@ async def pay_bill(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Bill doesn't exist"
         )
+    if bill.paid_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Bill is already paid"
+        )
     if bill.total != 0:
         try:
             return PaymentResponse(url=await create_payment_url(bill=bill))

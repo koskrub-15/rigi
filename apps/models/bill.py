@@ -17,3 +17,6 @@ class BillModel(Base):
     tickets: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
     total: Mapped[int] = mapped_column()
     closed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    paid_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None, nullable=True
+    )

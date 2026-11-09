@@ -15,6 +15,7 @@ class ClosedBillResponse(BillResponse):
     year: int
     month: int
     closed_at: datetime
+    paid_at: datetime | None
 
 
 class PaymentResponse(BaseModel):
