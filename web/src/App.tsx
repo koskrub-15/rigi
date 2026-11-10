@@ -7,7 +7,7 @@ import {
   Routes,
   useNavigate,
 } from "react-router";
-import { monthBounds } from "./month";
+import { monthBounds, previousMonth } from "./month";
 import { API, apiFetch } from "./api";
 import "chart.js/auto";
 import { Bar } from "react-chartjs-2";
@@ -44,11 +44,24 @@ type Stats = {
   per_day: PerDay[];
 };
 
+type ClosedBill = Bill & {
+  id: number;
+  year: number;
+  month: number;
+  closed_at: string;
+  paid_at: string | null;
+};
+
 const TICKET_NAMES: Record<string, string> = {
   single_ticket: "Single ticket",
   day_ticket: "Day ticket",
   weekly_ticket: "Weekly ticket",
 };
+
+const inputClass =
+  "w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
+const buttonClass =
+  "bg-blue-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-blue-700 disabled:opacity-50";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access_token"));
@@ -66,37 +79,55 @@ function App() {
   }
   return (
     <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            token ? (
-              <>
-                <Home onLogout={logout} />
-                <button onClick={logout}>Log out</button>
-              </>
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/login"
-          element={
-            token ? (
-              <Navigate to="/" replace />
-            ) : (
-              <LoginForm onLogin={setToken} />
-            )
-          }
-        />
-        <Route
-          path="/register"
-          element={token ? <Navigate to="/" replace /> : <RegisterForm />}
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <div className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-md p-4">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                token ? (
+                  <>
+                    <Header onLogout={logout} />
+                    <Home onLogout={logout} />
+                  </>
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/login"
+              element={
+                token ? (
+                  <Navigate to="/" replace />
+                ) : (
+                  <LoginForm onLogin={setToken} />
+                )
+              }
+            />
+            <Route
+              path="/register"
+              element={token ? <Navigate to="/" replace /> : <RegisterForm />}
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+      </div>
     </BrowserRouter>
+  );
+}
+
+function Header({ onLogout }: { onLogout: () => void }) {
+  return (
+    <header className="mb-6 flex items-center justify-between">
+      <span className="text-xl font-semibold">Rigi</span>
+      <button
+        className="text-sm text-slate-600 hover:underline"
+        onClick={onLogout}
+      >
+        Log out
+      </button>
+    </header>
   );
 }
 
@@ -123,22 +154,32 @@ function LoginForm({ onLogin }: { onLogin: (token: string) => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+      <h1 className="text-2xl font-bold">Log in</h1>
       <input
+        className={inputClass}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         type="email"
+        placeholder="Email"
       />
       <input
+        className={inputClass}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         type="password"
+        placeholder="Password"
       />
-      <button type="submit">Submit</button>
+      <button className={buttonClass} type="submit">
+        Submit
+      </button>
       <p>
-        Don't have an account? <Link to="/register">Register</Link>
+        Don't have an account?{" "}
+        <Link className="text-blue-600 underline" to="/register">
+          Register
+        </Link>
       </p>
-      {error && <p>{error}</p>}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
     </form>
   );
 }
@@ -176,34 +217,46 @@ function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+      <h1 className="text-2xl font-bold">Sign up</h1>
       <input
+        className={inputClass}
         value={firstName}
         onChange={(e) => setFirstName(e.target.value)}
         type="text"
-        placeholder="First Name"
+        placeholder="First name"
       />
       <input
+        className={inputClass}
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
         type="text"
-        placeholder="Last Name"
+        placeholder="Last name"
       />
       <input
+        className={inputClass}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         type="email"
+        placeholder="Email"
       />
       <input
+        className={inputClass}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         type="password"
+        placeholder="Password"
       />
-      <button type="submit">Submit</button>
+      <button className={buttonClass} type="submit">
+        Submit
+      </button>
       <p>
-        Already have an account? <Link to="/login">Log in</Link>
+        Already have an account?{" "}
+        <Link className="text-blue-600 underline" to="/login">
+          Log in
+        </Link>
       </p>
-      {error && <p>{error}</p>}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
     </form>
   );
 }
@@ -281,6 +334,7 @@ function Home({ onLogout }: { onLogout: () => void }) {
       <ScanPanel onScan={scan} />
       <TripsList trips={trips} />
       {bill && <BillView bill={bill} />}
+      <ClosedBills onLogout={onLogout} />
       {stats && <StatsView stats={stats} />}
       {error && <p>{error}</p>}
     </>
@@ -335,14 +389,28 @@ function ScanPanel({
 
   return (
     <>
-      <input value={code} onChange={(e) => setCode(e.target.value)} />
-      <button disabled={noCode} onClick={() => onScan("check_in", code)}>
-        Check in
-      </button>
-      <button disabled={noCode} onClick={() => onScan("check_out", code)}>
-        Check out
-      </button>
-      <button onClick={toggleScanning}>
+      <input
+        className={inputClass}
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+      />
+      <div className="flex gap-3 my-4">
+        <button
+          className={buttonClass}
+          disabled={noCode}
+          onClick={() => onScan("check_in", code)}
+        >
+          Check in
+        </button>
+        <button
+          className={buttonClass}
+          disabled={noCode}
+          onClick={() => onScan("check_out", code)}
+        >
+          Check out
+        </button>
+      </div>
+      <button className={buttonClass} onClick={toggleScanning}>
         {scanning ? "Cancel" : "Scan QR-Code"}
       </button>
       {scanning && (
@@ -398,6 +466,97 @@ function StatsView({ stats }: { stats: Stats }) {
           ],
         }}
       />
+    </>
+  );
+}
+
+function ClosedBills({ onLogout }: { onLogout: () => void }) {
+  const [bills, setBills] = useState<ClosedBill[]>([]);
+  const [error, setError] = useState("");
+  const [[year, month]] = useState(() => previousMonth(new Date()));
+  const label = `${year}-${String(month).padStart(2, "0")}`;
+  const payment = new URLSearchParams(window.location.search).get("payment");
+
+  async function load() {
+    setError("");
+    const billResponse = await apiFetch(`/bills`);
+    if (!billResponse.ok) {
+      if (billResponse.status === 401) {
+        onLogout();
+        return;
+      }
+      setError("Could not load bills");
+      return;
+    }
+    const billData = await billResponse.json();
+    setBills(billData);
+  }
+  async function closeBill() {
+    setError("");
+    const response = await apiFetch(`/bills/${year}/${month}`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        onLogout();
+        return;
+      }
+      const data = await response.json();
+      setError(data.detail);
+      return;
+    }
+    await load();
+  }
+
+  async function pay(billId: number) {
+    setError("");
+    const response = await apiFetch(`/bills/${billId}/payment`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        onLogout();
+        return;
+      }
+      const data = await response.json();
+      setError(data.detail);
+      return;
+    }
+    const data = await response.json();
+    window.location.assign(data.url);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  return (
+    <>
+      <ul>
+        {bills.map((bill) => (
+          <li key={bill.id}>
+            <p>
+              {bill.year}-{String(bill.month).padStart(2, "0")} - {bill.total}
+            </p>
+            {bill.paid_at ? (
+              <p>Paid</p>
+            ) : bill.total === 0 ? (
+              <p>Nothing to pay</p>
+            ) : (
+              <button onClick={() => pay(bill.id)}>Pay</button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <button className={buttonClass} onClick={closeBill}>
+        Close {label}
+      </button>
+      {payment === "success" ? (
+        <p>Payment received — it may take a few seconds to show as paid.</p>
+      ) : payment === "cancel" ? (
+        <p>Payment cancelled</p>
+      ) : null}
+      {error && <p>{error}</p>}
     </>
   );
 }
