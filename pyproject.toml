@@ -20,6 +20,10 @@ dependencies = [
   "uvicorn>=0.54.0",
 ]
 
+[tool.coverage.report]
+precision = 2
+show_missing = true
+
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
