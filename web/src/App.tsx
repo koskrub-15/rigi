@@ -7,7 +7,7 @@ import {
   Routes,
   useNavigate,
 } from "react-router";
-import { monthBounds } from "./month";
+import { monthBounds, previousMonth } from "./month";
 import { API, apiFetch } from "./api";
 import "chart.js/auto";
 import { Bar } from "react-chartjs-2";
@@ -42,6 +42,14 @@ type Stats = {
   paid: number;
   singles_price: number;
   per_day: PerDay[];
+};
+
+type ClosedBill = Bill & {
+  id: number;
+  year: number;
+  month: number;
+  closed_at: string;
+  paid_at: string | null;
 };
 
 const TICKET_NAMES: Record<string, string> = {
@@ -281,6 +289,7 @@ function Home({ onLogout }: { onLogout: () => void }) {
       <ScanPanel onScan={scan} />
       <TripsList trips={trips} />
       {bill && <BillView bill={bill} />}
+      <ClosedBills onLogout={onLogout} />
       {stats && <StatsView stats={stats} />}
       {error && <p>{error}</p>}
     </>
@@ -398,6 +407,95 @@ function StatsView({ stats }: { stats: Stats }) {
           ],
         }}
       />
+    </>
+  );
+}
+
+function ClosedBills({ onLogout }: { onLogout: () => void }) {
+  const [bills, setBills] = useState<ClosedBill[]>([]);
+  const [error, setError] = useState("");
+  const [[year, month]] = useState(() => previousMonth(new Date()));
+  const label = `${year}-${String(month).padStart(2, "0")}`;
+  const payment = new URLSearchParams(window.location.search).get("payment");
+
+  async function load() {
+    setError("");
+    const billResponse = await apiFetch(`/bills`);
+    if (!billResponse.ok) {
+      if (billResponse.status === 401) {
+        onLogout();
+        return;
+      }
+      setError("Could not load bills");
+      return;
+    }
+    const billData = await billResponse.json();
+    setBills(billData);
+  }
+  async function closeBill() {
+    setError("");
+    const response = await apiFetch(`/bills/${year}/${month}`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        onLogout();
+        return;
+      }
+      const data = await response.json();
+      setError(data.detail);
+      return;
+    }
+    await load();
+  }
+
+  async function pay(billId: number) {
+    setError("");
+    const response = await apiFetch(`/bills/${billId}/payment`, {
+      method: "POST",
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        onLogout();
+        return;
+      }
+      const data = await response.json();
+      setError(data.detail);
+      return;
+    }
+    const data = await response.json();
+    window.location.assign(data.url);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  return (
+    <>
+      <ul>
+        {bills.map((bill) => (
+          <li key={bill.id}>
+            <p>
+              {bill.year}-{String(bill.month).padStart(2, "0")} - {bill.total}
+            </p>
+            {bill.paid_at ? (
+              <p>Paid</p>
+            ) : bill.total === 0 ? (
+              <p>Nothing to pay</p>
+            ) : (
+              <button onClick={() => pay(bill.id)}>Pay</button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <button onClick={closeBill}>Close {label}</button>
+      {payment === "success" ? (
+        <p>Payment received — it may take a few seconds to show as paid.</p>
+      ) : payment === "cancel" ? (
+        <p>Payment cancelled</p>
+      ) : null}
+      {error && <p>{error}</p>}
     </>
   );
 }
