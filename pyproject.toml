@@ -20,6 +20,9 @@ dependencies = [
   "uvicorn>=0.54.0",
 ]
 
+[tool.coverage.run]
+source = ["apps"]
+
 [tool.coverage.report]
 precision = 2
 show_missing = true
