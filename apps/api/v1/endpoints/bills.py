@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from collections.abc import Sequence
 from apps.CRUD.bill import create_bill_model, get_bills, get_bill
-from apps.core.tariffs import MAX_TRIP_DURATION
+from apps.core.tariffs import MAX_TRIP_DURATION, currency
 from apps.db.session import get_db
 from apps.models.bill import BillModel
 from apps.schemas.bill import BillResponse, ClosedBillResponse, PaymentResponse
@@ -36,7 +36,7 @@ async def create_bill(
         db=db,
     )
     tickets = optimizer(trips=trips)
-    return BillResponse(tickets=tickets, total=total_price(tickets))
+    return BillResponse(tickets=tickets, total=total_price(tickets), currency=currency)
 
 
 @bill_router.post("/{bill_id}/payment", response_model=PaymentResponse)
@@ -92,7 +92,9 @@ async def close_bill(
     )
 
     tickets = optimizer(trips=trips)
-    response = BillResponse(tickets=tickets, total=total_price(tickets))
+    response = BillResponse(
+        tickets=tickets, total=total_price(tickets), currency=currency
+    )
     create_in_bd: BillModel | None = await create_bill_model(
         bill=response,
         db=db,

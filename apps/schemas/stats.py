@@ -1,5 +1,6 @@
 from datetime import date
 from pydantic import BaseModel, ConfigDict
+from apps.core.tariffs import currency
 
 
 class PerDaySchema(BaseModel):
@@ -14,3 +15,4 @@ class StatsResponse(BaseModel):
     paid: int
     singles_price: int
     per_day: list[PerDaySchema]
+    currency: str = currency

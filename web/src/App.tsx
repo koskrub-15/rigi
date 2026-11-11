@@ -19,6 +19,7 @@ type Trip = {
   from_zone: string;
   to_zone: string;
   zones: number;
+  forgotten: boolean;
 };
 
 type Ticket = {
@@ -30,6 +31,7 @@ type Ticket = {
 type Bill = {
   tickets: Ticket[];
   total: number;
+  currency: string;
 };
 
 type PerDay = {
@@ -42,6 +44,7 @@ type Stats = {
   paid: number;
   singles_price: number;
   per_day: PerDay[];
+  currency: string;
 };
 
 type ClosedBill = Bill & {
@@ -57,9 +60,20 @@ const TICKET_NAMES: Record<string, string> = {
   day_ticket: "Day ticket",
   weekly_ticket: "Weekly ticket",
 };
+const TIME_FORMAT = { hour: "2-digit", minute: "2-digit" } as const;
+
+function formatMoney(amount: number, currency: string): string {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+  }).format(amount);
+}
 
 const inputClass =
   "w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
+const cardClass = "bg-white rounded-xl p-4 shadow-sm";
+const secondaryButtonClass =
+  "border border-slate-300 bg-white text-slate-700 rounded-lg px-4 py-2 font-medium hover:bg-slate-100";
 const buttonClass =
   "bg-blue-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-blue-700 disabled:opacity-50";
 
@@ -321,47 +335,81 @@ function Home({ onLogout }: { onLogout: () => void }) {
     if (!response.ok) {
       if (response.status === 401) {
         onLogout();
-      } else {
-        setError("Failed to send scan");
+        return;
       }
+      const data = await response.json();
+      setError(
+        typeof data.detail === "string" ? data.detail : "Invalid QR code",
+      );
       return;
     }
     await load();
   }
 
   return (
-    <>
-      <ScanPanel onScan={scan} />
+    <div className="flex flex-col gap-4">
+      <ScanPanel onScan={scan} sendError={error} />
       <TripsList trips={trips} />
       {bill && <BillView bill={bill} />}
       <ClosedBills onLogout={onLogout} />
       {stats && <StatsView stats={stats} />}
-      {error && <p>{error}</p>}
-    </>
+    </div>
   );
 }
 
 function TripsList({ trips }: { trips: Trip[] }) {
-  return trips.length === 0 ? (
-    <p>There are no trips yet</p>
-  ) : (
-    <ul>
-      {" "}
-      {trips.map((trip) => (
-        <li key={trip.start}>
-          {new Date(trip.start + "Z").toLocaleString()} —{" "}
-          {new Date(trip.end + "Z").toLocaleString()} {trip.from_zone} {"->"}{" "}
-          {trip.to_zone} ({trip.zones} zones){" "}
-        </li>
-      ))}{" "}
-    </ul>
+  return (
+    <section className={cardClass}>
+      <h2 className="text-lg font-semibold mb-3">Trips</h2>
+      {trips.length === 0 ? (
+        <p className="text-sm text-slate-500">There are no trips yet</p>
+      ) : (
+        <ul className="divide-y divide-slate-200">
+          {trips.map((trip) => {
+            const start = new Date(trip.start + "Z");
+            const end = new Date(trip.end + "Z");
+            return (
+              <li key={trip.start} className="py-2">
+                <div className="flex justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">
+                      {trip.from_zone} → {trip.to_zone}
+                    </span>
+                    {trip.forgotten && (
+                      <span className="rounded-full bg-amber-100 text-amber-800 text-xs px-2 py-0.5 whitespace-nowrap shrink-0">
+                        forgotten
+                      </span>
+                    )}
+                  </span>
+                  <span>
+                    {trip.zones} {trip.zones === 1 ? "zone" : "zones"}
+                  </span>
+                </div>
+                <div className="text-sm text-slate-500">
+                  <span>
+                    {start.toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                    , {start.toLocaleTimeString(undefined, TIME_FORMAT)} –{" "}
+                    {end.toLocaleTimeString(undefined, TIME_FORMAT)}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
 function ScanPanel({
   onScan,
+  sendError,
 }: {
   onScan: (scanType: string, code: string) => void;
+  sendError: string;
 }) {
   const [code, setCode] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -388,30 +436,13 @@ function ScanPanel({
   const noCode = code.trim() === "";
 
   return (
-    <>
-      <input
-        className={inputClass}
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-      />
-      <div className="flex gap-3 my-4">
-        <button
-          className={buttonClass}
-          disabled={noCode}
-          onClick={() => onScan("check_in", code)}
-        >
-          Check in
-        </button>
-        <button
-          className={buttonClass}
-          disabled={noCode}
-          onClick={() => onScan("check_out", code)}
-        >
-          Check out
-        </button>
-      </div>
-      <button className={buttonClass} onClick={toggleScanning}>
-        {scanning ? "Cancel" : "Scan QR-Code"}
+    <section className={cardClass}>
+      <h2 className="text-lg font-semibold mb-3">Scan</h2>
+      <button
+        className={`${secondaryButtonClass} w-full mb-3`}
+        onClick={toggleScanning}
+      >
+        {scanning ? "Cancel" : "Scan QR-code"}
       </button>
       {scanning && (
         <Scanner
@@ -420,53 +451,133 @@ function ScanPanel({
           formats={["qr_code"]}
         />
       )}
-      {error && <p>{error}</p>}
-    </>
+      <input
+        className={inputClass}
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+      />
+      <div className="flex gap-3 mt-3">
+        <button
+          className={`${buttonClass} flex-1`}
+          disabled={noCode}
+          onClick={() => onScan("check_in", code)}
+        >
+          Check in
+        </button>
+        <button
+          className={`${buttonClass} flex-1`}
+          disabled={noCode}
+          onClick={() => onScan("check_out", code)}
+        >
+          Check out
+        </button>
+      </div>
+      {sendError && <p className="text-red-600 text-sm">{sendError}</p>}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+    </section>
   );
 }
 
 //
 function BillView({ bill }: { bill: Bill }) {
-  return bill.tickets.length === 0 ? (
-    <p>There are no tickets yet</p>
-  ) : (
-    <>
-      <ul>
-        {" "}
-        {bill.tickets.map((ticket) => (
-          <li key={ticket.type + ticket.valid_from}>
-            {TICKET_NAMES[ticket.type]} valid from{" "}
-            {new Date(ticket.valid_from + "Z").toLocaleDateString()} for{" "}
-            {ticket.price}{" "}
-          </li>
-        ))}{" "}
-      </ul>
-      <p>Total: {bill.total}</p>
-    </>
+  return (
+    <section className={cardClass}>
+      <h2 className="text-lg font-semibold mb-3">This month</h2>
+      {bill.tickets.length === 0 ? (
+        <p className="text-sm text-slate-500">There are no tickets yet</p>
+      ) : (
+        <ul className="divide-y divide-slate-200">
+          {bill.tickets.map((ticket) => {
+            const validFrom = new Date(ticket.valid_from + "Z");
+            return (
+              <li key={ticket.type + ticket.valid_from} className="py-2">
+                <div className="flex justify-between">
+                  <span>{TICKET_NAMES[ticket.type]}</span>
+                  <span>{formatMoney(ticket.price, bill.currency)}</span>
+                </div>
+                <p className="text-sm text-slate-500">
+                  from{" "}
+                  {validFrom.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="flex justify-between border-t border-slate-200 pt-2 mt-2 font-semibold">
+        <span>Total</span>
+        <span>{formatMoney(bill.total, bill.currency)}</span>
+      </p>
+    </section>
   );
 }
 
 function StatsView({ stats }: { stats: Stats }) {
-  return stats.trips_count === 0 ? (
-    <p>There are no stats yet</p>
-  ) : (
-    <>
-      <p>Trips: {stats.trips_count}</p>
-      <p>Paid: {stats.paid}</p>
-      <p>If use only single tickets: {stats.singles_price}</p>
-      <p>Saved money: {stats.singles_price - stats.paid}</p>
-      <Bar
-        data={{
-          labels: stats.per_day.map((perDay) => perDay.day),
-          datasets: [
-            {
-              label: "Trips",
-              data: stats.per_day.map((perDay) => perDay.trips),
-            },
-          ],
-        }}
-      />
-    </>
+  return (
+    <section className={cardClass}>
+      <h2 className="text-lg font-semibold mb-3">Statistics</h2>
+      {stats.trips_count === 0 ? (
+        <p className="text-sm text-slate-500">No trips this month</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Trips</p>
+              <p className="text-lg font-semibold">{stats.trips_count}</p>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Paid</p>
+              <p className="text-lg font-semibold">
+                {formatMoney(stats.paid, stats.currency)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Saved</p>
+              <p className="text-lg font-semibold text-green-700">
+                {formatMoney(stats.singles_price - stats.paid, stats.currency)}
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-slate-500">
+            Single tickets would cost{" "}
+            {formatMoney(stats.singles_price, stats.currency)}
+          </p>
+          <h3 className="mt-3 mb-2 text-sm font-semibold">Trips per day</h3>
+          <Bar
+            data={{
+              labels: stats.per_day.map((perDay) =>
+                new Date(perDay.day + "T00:00").toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                }),
+              ),
+              datasets: [
+                {
+                  label: "Trips",
+                  data: stats.per_day.map((perDay) => perDay.trips),
+                  backgroundColor: "#2563eb",
+                  borderRadius: 4,
+                },
+              ],
+            }}
+            options={{
+              plugins: {
+                legend: { display: false },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { stepSize: 1 },
+                },
+              },
+            }}
+          />
+        </>
+      )}
+    </section>
   );
 }
 
@@ -531,33 +642,62 @@ function ClosedBills({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   return (
-    <>
-      <ul>
-        {bills.map((bill) => (
-          <li key={bill.id}>
-            <p>
-              {bill.year}-{String(bill.month).padStart(2, "0")} - {bill.total}
-            </p>
-            {bill.paid_at ? (
-              <p>Paid</p>
-            ) : bill.total === 0 ? (
-              <p>Nothing to pay</p>
-            ) : (
-              <button onClick={() => pay(bill.id)}>Pay</button>
-            )}
-          </li>
-        ))}
-      </ul>
-      <button className={buttonClass} onClick={closeBill}>
-        Close {label}
-      </button>
+    <section className={cardClass}>
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg font-semibold">Bills</h2>
+        <button className={secondaryButtonClass} onClick={closeBill}>
+          Close {label}
+        </button>
+      </div>
+      {bills.length === 0 ? (
+        <p className="text-sm text-slate-500">No closed bills yet</p>
+      ) : (
+        <ul className="divide-y divide-slate-200">
+          {bills.map((bill) => {
+            const monthName = new Date(
+              bill.year,
+              bill.month - 1,
+              1,
+            ).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+            return (
+              <li key={bill.id} className="py-2">
+                <div className="flex justify-between items-center gap-3">
+                  <span>
+                    {monthName} · {formatMoney(bill.total, bill.currency)}
+                  </span>
+                  {bill.paid_at ? (
+                    <span className="rounded-full bg-green-100 text-green-800 text-xs px-2 py-0.5">
+                      Paid
+                    </span>
+                  ) : bill.total === 0 ? (
+                    <span className="rounded-full bg-slate-100 text-slate-600 text-xs px-2 py-0.5">
+                      Nothing to pay
+                    </span>
+                  ) : (
+                    <button
+                      className={buttonClass}
+                      onClick={() => pay(bill.id)}
+                    >
+                      Pay
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {payment === "success" ? (
-        <p>Payment received — it may take a few seconds to show as paid.</p>
+        <p className="rounded-lg bg-green-50 text-green-800 text-sm p-3 mt-3">
+          Payment received — it may take a few seconds to show as paid.
+        </p>
       ) : payment === "cancel" ? (
-        <p>Payment cancelled</p>
+        <p className="rounded-lg bg-slate-100 text-slate-700 text-sm p-3 mt-3">
+          Payment cancelled
+        </p>
       ) : null}
-      {error && <p>{error}</p>}
-    </>
+      {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
+    </section>
   );
 }
 

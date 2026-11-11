@@ -15,7 +15,7 @@ async def create_bill_model(
     month: int,
     closed_at: datetime,
 ) -> BillModel | None:
-    create_data = bill.model_dump(mode="json")
+    create_data = bill.model_dump(mode="json", exclude={"currency"})
     db_obj = BillModel(
         user_id=user_id,
         year=year,

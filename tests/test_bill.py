@@ -4,6 +4,7 @@ from httpx import AsyncClient
 import pytest
 
 from apps.api.v1.endpoints import bills as bills_endpoint
+from apps.core.tariffs import currency
 from apps.core.security import create_zone_token
 from tests.conftest import MakeAuthClient
 
@@ -137,6 +138,26 @@ async def test_preview_does_not_create_a_closed_bill(auth_client: AsyncClient):
     assert preview["total"] == 3
     assert closed.status_code == 200
     assert closed.json() == []
+
+
+async def test_preview_includes_currency(auth_client: AsyncClient):
+    preview = await get_bill(auth_client, "2026-10-01T00:00", "2026-11-01T00:00")
+
+    assert preview["currency"] == currency
+
+
+async def test_closed_bills_include_currency(
+    auth_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
+    freeze_bill_time(monkeypatch, datetime(2026, 11, 1, 3, 0, tzinfo=timezone.utc))
+
+    closed = await close_bill(auth_client, 2026, 10)
+    listed = await auth_client.get("/bills")
+
+    assert closed.status_code == 201
+    assert closed.json()["currency"] == currency
+    assert listed.status_code == 200
+    assert listed.json()[0]["currency"] == currency
 
 
 async def test_cannot_close_month_before_three_hour_grace_period(
