@@ -49,7 +49,8 @@ week tickets. No ticket machine, no guessing which pass pays off.
   Argon2 password hashing; the user always comes from the token, never from the URL.
 - **📊 Statistics** — trips per day, the amount paid and what the same trips would
   have cost as single tickets, drawn with Chart.js.
-- **⚛️ React front** — login, registration, camera scanning, trips, bill and stats;
+- **⚛️ React front** — login, registration, camera scanning, trips, bills and stats,
+  styled with Tailwind CSS for a phone-width screen; forgotten check-outs are marked;
   the access token is refreshed silently on `401`.
 - **📱 Installable PWA** — web app manifest and a service worker: Rigi installs to the
   home screen and opens without a network (network-first cache of the app itself;
@@ -136,7 +137,7 @@ Tuesday's 2-zone trip stays a single:
 **Backend:** FastAPI · async SQLAlchemy 2 · Pydantic v2 · Alembic · PostgreSQL ·
 PyJWT · Argon2 · segno (QR codes) · Stripe
 
-**Frontend:** React 19 · TypeScript · Vite · React Router · Chart.js ·
+**Frontend:** React 19 · TypeScript · Vite · Tailwind CSS · React Router · Chart.js ·
 `@yudiel/react-qr-scanner`
 
 **Infrastructure:** Docker · nginx · Fly.io · Neon (serverless Postgres) ·
@@ -230,6 +231,7 @@ app has its own deploy token.
 - [x] Front on Fly.io, scanning from a phone
 - [x] Installable PWA that opens offline
 - [x] Closing a billing period, test payments with Stripe
+- [x] Styling with Tailwind CSS
 - [ ] Zone-based day and week tickets, an all-zones ticket
 
 ### Known limitations
