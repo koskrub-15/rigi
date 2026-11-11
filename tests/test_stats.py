@@ -1,5 +1,6 @@
 from httpx import AsyncClient
 
+from apps.core.tariffs import currency
 from tests.test_bill import get_bill, ride
 
 OCTOBER = ("2026-10-01T00:00", "2026-11-01T00:00")
@@ -35,7 +36,13 @@ async def test_empty_period(auth_client: AsyncClient):
 
     stats = await get_stats(auth_client, *OCTOBER)
 
-    assert stats == {"trips_count": 0, "paid": 0, "singles_price": 0, "per_day": []}
+    assert stats == {
+        "trips_count": 0,
+        "paid": 0,
+        "singles_price": 0,
+        "per_day": [],
+        "currency": currency,
+    }
 
 
 async def test_paid_equals_bill_total(auth_client: AsyncClient):
