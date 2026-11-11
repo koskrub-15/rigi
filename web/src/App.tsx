@@ -31,6 +31,7 @@ type Ticket = {
 type Bill = {
   tickets: Ticket[];
   total: number;
+  currency: string;
 };
 
 type PerDay = {
@@ -59,6 +60,13 @@ const TICKET_NAMES: Record<string, string> = {
   weekly_ticket: "Weekly ticket",
 };
 const TIME_FORMAT = { hour: "2-digit", minute: "2-digit" } as const;
+
+function formatMoney(amount: number, currency: string): string {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+  }).format(amount);
+}
 
 const inputClass =
   "w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
@@ -469,22 +477,38 @@ function ScanPanel({
 
 //
 function BillView({ bill }: { bill: Bill }) {
-  return bill.tickets.length === 0 ? (
-    <p>There are no tickets yet</p>
-  ) : (
-    <>
-      <ul>
-        {" "}
-        {bill.tickets.map((ticket) => (
-          <li key={ticket.type + ticket.valid_from}>
-            {TICKET_NAMES[ticket.type]} valid from{" "}
-            {new Date(ticket.valid_from + "Z").toLocaleDateString()} for{" "}
-            {ticket.price}{" "}
-          </li>
-        ))}{" "}
-      </ul>
-      <p>Total: {bill.total}</p>
-    </>
+  return (
+    <section className={cardClass}>
+      <h2 className="text-lg font-semibold mb-3">This month</h2>
+      {bill.tickets.length === 0 ? (
+        <p className="text-sm text-slate-500">There are no tickets yet</p>
+      ) : (
+        <ul className="divide-y divide-slate-200">
+          {bill.tickets.map((ticket) => {
+            const validFrom = new Date(ticket.valid_from + "Z");
+            return (
+              <li key={ticket.type + ticket.valid_from} className="py-2">
+                <div className="flex justify-between">
+                  <span>{TICKET_NAMES[ticket.type]}</span>
+                  <span>{formatMoney(ticket.price, bill.currency)}</span>
+                </div>
+                <p className="text-sm text-slate-500">
+                  from{" "}
+                  {validFrom.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="flex justify-between border-t border-slate-200 pt-2 mt-2 font-semibold">
+        <span>Total</span>
+        <span>{formatMoney(bill.total, bill.currency)}</span>
+      </p>
+    </section>
   );
 }
 
@@ -573,33 +597,62 @@ function ClosedBills({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   return (
-    <>
-      <ul>
-        {bills.map((bill) => (
-          <li key={bill.id}>
-            <p>
-              {bill.year}-{String(bill.month).padStart(2, "0")} - {bill.total}
-            </p>
-            {bill.paid_at ? (
-              <p>Paid</p>
-            ) : bill.total === 0 ? (
-              <p>Nothing to pay</p>
-            ) : (
-              <button onClick={() => pay(bill.id)}>Pay</button>
-            )}
-          </li>
-        ))}
-      </ul>
-      <button className={buttonClass} onClick={closeBill}>
-        Close {label}
-      </button>
+    <section className={cardClass}>
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg font-semibold">Bills</h2>
+        <button className={secondaryButtonClass} onClick={closeBill}>
+          Close {label}
+        </button>
+      </div>
+      {bills.length === 0 ? (
+        <p className="text-sm text-slate-500">No closed bills yet</p>
+      ) : (
+        <ul className="divide-y divide-slate-200">
+          {bills.map((bill) => {
+            const monthName = new Date(
+              bill.year,
+              bill.month - 1,
+              1,
+            ).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+            return (
+              <li key={bill.id} className="py-2">
+                <div className="flex justify-between items-center gap-3">
+                  <span>
+                    {monthName} · {formatMoney(bill.total, bill.currency)}
+                  </span>
+                  {bill.paid_at ? (
+                    <span className="rounded-full bg-green-100 text-green-800 text-xs px-2 py-0.5">
+                      Paid
+                    </span>
+                  ) : bill.total === 0 ? (
+                    <span className="rounded-full bg-slate-100 text-slate-600 text-xs px-2 py-0.5">
+                      Nothing to pay
+                    </span>
+                  ) : (
+                    <button
+                      className={buttonClass}
+                      onClick={() => pay(bill.id)}
+                    >
+                      Pay
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {payment === "success" ? (
-        <p>Payment received — it may take a few seconds to show as paid.</p>
+        <p className="rounded-lg bg-green-50 text-green-800 text-sm p-3 mt-3">
+          Payment received — it may take a few seconds to show as paid.
+        </p>
       ) : payment === "cancel" ? (
-        <p>Payment cancelled</p>
+        <p className="rounded-lg bg-slate-100 text-slate-700 text-sm p-3 mt-3">
+          Payment cancelled
+        </p>
       ) : null}
-      {error && <p>{error}</p>}
-    </>
+      {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
+    </section>
   );
 }
 
