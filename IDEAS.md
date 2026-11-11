@@ -14,3 +14,13 @@
   optimizer has to group trips into windows — a small DP of its own, the same "which
   ticket covers which stretch" idea as the week ticket, in hours instead of days.
   Open question: how many zones such a ticket covers when its trips differ.
+- Leaderboard of riders by trip count, opt-in only: a `show_in_leaderboard` flag that is
+  off by default and a public name like "Konstantin K." instead of the email. Needs real
+  users to look alive; with two or three it reads as empty.
+- "You ride more than 70% of riders": compare a user with the average, shown only when
+  the sample has at least N users, otherwise an average of three reveals the others.
+- GPS would make the stats far richer: kilometres, speed, the actual route. A PWA cannot
+  track location in the background (`watchPosition` stops when the page is not on
+  screen), so full tracking needs a native app. A middle step: record the location at
+  the moment of a scan and check it against the zone, which also closes the
+  "photo of a stop's QR" hole.
