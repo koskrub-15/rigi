@@ -19,6 +19,7 @@ type Trip = {
   from_zone: string;
   to_zone: string;
   zones: number;
+  forgotten: boolean;
 };
 
 type Ticket = {
@@ -57,9 +58,13 @@ const TICKET_NAMES: Record<string, string> = {
   day_ticket: "Day ticket",
   weekly_ticket: "Weekly ticket",
 };
+const TIME_FORMAT = { hour: "2-digit", minute: "2-digit" } as const;
 
 const inputClass =
   "w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
+const cardClass = "bg-white rounded-xl p-4 shadow-sm";
+const secondaryButtonClass =
+  "border border-slate-300 bg-white text-slate-700 rounded-lg px-4 py-2 font-medium hover:bg-slate-100";
 const buttonClass =
   "bg-blue-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-blue-700 disabled:opacity-50";
 
@@ -321,47 +326,79 @@ function Home({ onLogout }: { onLogout: () => void }) {
     if (!response.ok) {
       if (response.status === 401) {
         onLogout();
-      } else {
-        setError("Failed to send scan");
+        return;
       }
+      const data = await response.json();
+      setError(
+        typeof data.detail === "string" ? data.detail : "Invalid QR code",
+      );
       return;
     }
     await load();
   }
 
   return (
-    <>
-      <ScanPanel onScan={scan} />
+    <div className="flex flex-col gap-4">
+      <ScanPanel onScan={scan} sendError={error} />
       <TripsList trips={trips} />
       {bill && <BillView bill={bill} />}
       <ClosedBills onLogout={onLogout} />
       {stats && <StatsView stats={stats} />}
-      {error && <p>{error}</p>}
-    </>
+    </div>
   );
 }
 
 function TripsList({ trips }: { trips: Trip[] }) {
-  return trips.length === 0 ? (
-    <p>There are no trips yet</p>
-  ) : (
-    <ul>
-      {" "}
-      {trips.map((trip) => (
-        <li key={trip.start}>
-          {new Date(trip.start + "Z").toLocaleString()} —{" "}
-          {new Date(trip.end + "Z").toLocaleString()} {trip.from_zone} {"->"}{" "}
-          {trip.to_zone} ({trip.zones} zones){" "}
-        </li>
-      ))}{" "}
-    </ul>
+  return (
+    <section className={cardClass}>
+      <h2 className="text-lg font-semibold mb-3">Trips</h2>
+      {trips.length === 0 ? (
+        <p className="text-sm text-slate-500">There are no trips yet</p>
+      ) : (
+        <ul className="divide-y divide-slate-200">
+          {trips.map((trip) => {
+            const start = new Date(trip.start + "Z");
+            const end = new Date(trip.end + "Z");
+            return (
+              <li key={trip.start} className="py-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold">
+                    {trip.from_zone} → {trip.to_zone}
+                  </span>
+                  <span>
+                    {trip.zones} {trip.zones === 1 ? "zone" : "zones"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <span>
+                    {start.toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                    , {start.toLocaleTimeString(undefined, TIME_FORMAT)} –{" "}
+                    {end.toLocaleTimeString(undefined, TIME_FORMAT)}
+                  </span>
+                  {trip.forgotten && (
+                    <span className="rounded-full bg-amber-100 text-amber-800 text-xs px-2 py-0.5">
+                      forgotten check-out
+                    </span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
 function ScanPanel({
   onScan,
+  sendError,
 }: {
   onScan: (scanType: string, code: string) => void;
+  sendError: string;
 }) {
   const [code, setCode] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -388,30 +425,13 @@ function ScanPanel({
   const noCode = code.trim() === "";
 
   return (
-    <>
-      <input
-        className={inputClass}
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-      />
-      <div className="flex gap-3 my-4">
-        <button
-          className={buttonClass}
-          disabled={noCode}
-          onClick={() => onScan("check_in", code)}
-        >
-          Check in
-        </button>
-        <button
-          className={buttonClass}
-          disabled={noCode}
-          onClick={() => onScan("check_out", code)}
-        >
-          Check out
-        </button>
-      </div>
-      <button className={buttonClass} onClick={toggleScanning}>
-        {scanning ? "Cancel" : "Scan QR-Code"}
+    <section className={cardClass}>
+      <h2 className="text-lg font-semibold mb-3">Scan</h2>
+      <button
+        className={`${secondaryButtonClass} w-full mb-3`}
+        onClick={toggleScanning}
+      >
+        {scanning ? "Cancel" : "Scan QR-code"}
       </button>
       {scanning && (
         <Scanner
@@ -420,8 +440,30 @@ function ScanPanel({
           formats={["qr_code"]}
         />
       )}
-      {error && <p>{error}</p>}
-    </>
+      <input
+        className={inputClass}
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+      />
+      <div className="flex gap-3 mt-3">
+        <button
+          className={`${buttonClass} flex-1`}
+          disabled={noCode}
+          onClick={() => onScan("check_in", code)}
+        >
+          Check in
+        </button>
+        <button
+          className={`${buttonClass} flex-1`}
+          disabled={noCode}
+          onClick={() => onScan("check_out", code)}
+        >
+          Check out
+        </button>
+      </div>
+      {sendError && <p className="text-red-600 text-sm">{sendError}</p>}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+    </section>
   );
 }
 
