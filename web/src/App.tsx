@@ -44,6 +44,7 @@ type Stats = {
   paid: number;
   singles_price: number;
   per_day: PerDay[];
+  currency: string;
 };
 
 type ClosedBill = Bill & {
@@ -370,14 +371,21 @@ function TripsList({ trips }: { trips: Trip[] }) {
             return (
               <li key={trip.start} className="py-2">
                 <div className="flex justify-between">
-                  <span className="font-semibold">
-                    {trip.from_zone} → {trip.to_zone}
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">
+                      {trip.from_zone} → {trip.to_zone}
+                    </span>
+                    {trip.forgotten && (
+                      <span className="rounded-full bg-amber-100 text-amber-800 text-xs px-2 py-0.5 whitespace-nowrap shrink-0">
+                        forgotten
+                      </span>
+                    )}
                   </span>
                   <span>
                     {trip.zones} {trip.zones === 1 ? "zone" : "zones"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-500">
+                <div className="text-sm text-slate-500">
                   <span>
                     {start.toLocaleDateString(undefined, {
                       month: "short",
@@ -386,11 +394,6 @@ function TripsList({ trips }: { trips: Trip[] }) {
                     , {start.toLocaleTimeString(undefined, TIME_FORMAT)} –{" "}
                     {end.toLocaleTimeString(undefined, TIME_FORMAT)}
                   </span>
-                  {trip.forgotten && (
-                    <span className="rounded-full bg-amber-100 text-amber-800 text-xs px-2 py-0.5">
-                      forgotten check-out
-                    </span>
-                  )}
                 </div>
               </li>
             );
@@ -513,26 +516,68 @@ function BillView({ bill }: { bill: Bill }) {
 }
 
 function StatsView({ stats }: { stats: Stats }) {
-  return stats.trips_count === 0 ? (
-    <p>There are no stats yet</p>
-  ) : (
-    <>
-      <p>Trips: {stats.trips_count}</p>
-      <p>Paid: {stats.paid}</p>
-      <p>If use only single tickets: {stats.singles_price}</p>
-      <p>Saved money: {stats.singles_price - stats.paid}</p>
-      <Bar
-        data={{
-          labels: stats.per_day.map((perDay) => perDay.day),
-          datasets: [
-            {
-              label: "Trips",
-              data: stats.per_day.map((perDay) => perDay.trips),
-            },
-          ],
-        }}
-      />
-    </>
+  return (
+    <section className={cardClass}>
+      <h2 className="text-lg font-semibold mb-3">Statistics</h2>
+      {stats.trips_count === 0 ? (
+        <p className="text-sm text-slate-500">No trips this month</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Trips</p>
+              <p className="text-lg font-semibold">{stats.trips_count}</p>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Paid</p>
+              <p className="text-lg font-semibold">
+                {formatMoney(stats.paid, stats.currency)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3">
+              <p className="text-xs text-slate-500">Saved</p>
+              <p className="text-lg font-semibold text-green-700">
+                {formatMoney(stats.singles_price - stats.paid, stats.currency)}
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-slate-500">
+            Single tickets would cost{" "}
+            {formatMoney(stats.singles_price, stats.currency)}
+          </p>
+          <h3 className="mt-3 mb-2 text-sm font-semibold">Trips per day</h3>
+          <Bar
+            data={{
+              labels: stats.per_day.map((perDay) =>
+                new Date(perDay.day + "T00:00").toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                }),
+              ),
+              datasets: [
+                {
+                  label: "Trips",
+                  data: stats.per_day.map((perDay) => perDay.trips),
+                  backgroundColor: "#2563eb",
+                  borderRadius: 4,
+                },
+              ],
+            }}
+            options={{
+              plugins: {
+                legend: { display: false },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { stepSize: 1 },
+                },
+              },
+            }}
+          />
+        </>
+      )}
+    </section>
   );
 }
 
