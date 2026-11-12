@@ -22,8 +22,8 @@ async def create_payment_url(bill: BillModel) -> str:
                     },
                 }
             ],
-            "success_url": f"{settings.WEB_URL}/?payment=success",
-            "cancel_url": f"{settings.WEB_URL}/?payment=cancel",
+            "success_url": f"{settings.WEB_URL}/tickets?payment=success",
+            "cancel_url": f"{settings.WEB_URL}/tickets?payment=cancel",
             "metadata": {"bill_id": str(bill.id)},
         }
     )
