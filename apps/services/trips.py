@@ -92,22 +92,31 @@ def trips_per_day(trips: list[TripResponse]) -> list[PerDaySchema]:
 
 
 async def get_trips(
+    *,
     user_id: int,
-    date_from: datetime,
-    date_to: datetime,
     now: datetime,
     db: AsyncSession,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
 ) -> list[TripResponse]:
-    """Get list of trips for user in given date range"""
-    date_from, date_to = to_naive_utc(date_from), to_naive_utc(date_to)
+    """Return the user's trips, optionally limited by start time to ``[date_from, date_to)``.
+
+    Trips are always built from all scans and filtered afterwards, so a trip
+    crossing a period boundary is never split. A ``None`` bound means
+    the range is open on that side.
+    """
     trips = build_trips(
-        scans=await get_scans(
-            db=db,
-            user_id=user_id,
-        ),
+        scans=await get_scans(db=db, user_id=user_id),
         now=now,
     )
-    trips = [trip for trip in trips if date_from <= trip.start < date_to]
+
+    if date_from is not None:
+        date_from = to_naive_utc(date_from)
+        trips = [trip for trip in trips if trip.start >= date_from]
+    if date_to is not None:
+        date_to = to_naive_utc(date_to)
+        trips = [trip for trip in trips if trip.start < date_to]
+
     return trips
 
 
