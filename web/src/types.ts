@@ -39,3 +39,8 @@ export type ClosedBill = Bill & {
   closed_at: string;
   paid_at: string | null;
 };
+
+export type OpenedTrip = {
+  start: string;
+  from_zone: string;
+};

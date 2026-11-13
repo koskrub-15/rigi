@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 from typing import Annotated
 from apps.db.session import get_db
-from apps.schemas.trip import TripResponse
+from apps.schemas.trip import OpenTripResponse, TripResponse
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from apps.services.trips import get_trips
+from apps.services.trips import get_trips, search_opened_trip
 from apps.models.user import User
 from apps.api.deps import get_current_user
 from apps.core.datetimes import to_naive_utc
@@ -46,3 +46,14 @@ async def build_trips_endpoint(
         now=datetime.now(timezone.utc),
     )
     return trips
+
+
+@trip_router.get("/current", response_model=OpenTripResponse | None)
+async def get_current_trip(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> OpenTripResponse | None:
+    """Return the user's currently open trip, or null if there is none."""
+    return await search_opened_trip(
+        db=db, user_id=current_user.id, now=datetime.now(timezone.utc)
+    )

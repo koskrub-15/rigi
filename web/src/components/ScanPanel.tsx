@@ -11,14 +11,16 @@ import {
 export function ScanPanel({
   onScan,
   sendError,
+  confirmation,
 }: {
-  onScan: (scanType: string, code: string) => void;
+  onScan: (scanType: string, code: string) => Promise<boolean>;
   sendError: string;
+  confirmation: string;
 }) {
   const [code, setCode] = useState("");
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
-
+  const [sending, setSending] = useState(false);
   function handleScan(results: IDetectedBarcode[]) {
     if (results.length === 0) {
       return;
@@ -35,6 +37,18 @@ export function ScanPanel({
   function toggleScanning() {
     setError("");
     setScanning((prev) => !prev);
+  }
+
+  async function submit(scanType: string) {
+    setSending(true);
+    try {
+      const ok = await onScan(scanType, code);
+      if (ok) {
+        setCode("");
+      }
+    } finally {
+      setSending(false);
+    }
   }
 
   const noCode = code.trim() === "";
@@ -63,19 +77,24 @@ export function ScanPanel({
       <div className="flex gap-3 mt-3">
         <button
           className={`${buttonClass} flex-1`}
-          disabled={noCode}
-          onClick={() => onScan("check_in", code)}
+          disabled={noCode || sending}
+          onClick={() => submit("check_in")}
         >
           Check in
         </button>
         <button
           className={`${buttonClass} flex-1`}
-          disabled={noCode}
-          onClick={() => onScan("check_out", code)}
+          disabled={noCode || sending}
+          onClick={() => submit("check_out")}
         >
           Check out
         </button>
       </div>
+      {confirmation && (
+        <p className="rounded-lg bg-green-50 text-green-800 text-sm p-3 mt-3">
+          {confirmation}
+        </p>
+      )}
       {sendError && <p className="text-red-600 text-sm">{sendError}</p>}
       {error && <p className="text-red-600 text-sm">{error}</p>}
     </section>

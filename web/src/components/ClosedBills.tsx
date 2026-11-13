@@ -7,7 +7,7 @@ import type { ClosedBill } from "../types";
 import { formatMoney } from "../format";
 
 export function ClosedBills({ onLogout }: { onLogout: () => void }) {
-  const [bills, setBills] = useState<ClosedBill[]>([]);
+  const [bills, setBills] = useState<ClosedBill[] | null>(null);
   const [error, setError] = useState("");
   const [[year, month]] = useState(() => previousMonth(new Date()));
   const label = `${year}-${String(month).padStart(2, "0")}`;
@@ -74,7 +74,9 @@ export function ClosedBills({ onLogout }: { onLogout: () => void }) {
           Close {label}
         </button>
       </div>
-      {bills.length === 0 ? (
+      {bills === null ? (
+        <p className="text-sm text-slate-500">Loading…</p>
+      ) : bills.length === 0 ? (
         <p className="text-sm text-slate-500">No closed bills yet</p>
       ) : (
         <ul className="divide-y divide-slate-200">

@@ -24,3 +24,13 @@ async def get_scans(db: AsyncSession, user_id: int) -> Sequence[ScanModel]:
         .order_by(ScanModel.timestamp)
     )
     return result.all()
+
+
+async def get_last_scan(db: AsyncSession, user_id: int) -> ScanModel | None:
+    """Return the user's most recent scan, or None if they have no scans."""
+    return await db.scalar(
+        select(ScanModel)
+        .where(ScanModel.user_id == user_id)
+        .order_by(ScanModel.timestamp.desc())
+        .limit(1)
+    )

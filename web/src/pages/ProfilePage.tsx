@@ -4,10 +4,10 @@ import { monthBounds } from "../month";
 import type { Stats, Trip } from "../types";
 import { StatsView } from "../components/StatsView";
 import { TripsList } from "../components/TripsList";
-import { secondaryButtonClass } from "../styles";
+import { cardClass, secondaryButtonClass } from "../styles";
 
 export function ProfilePage({ onLogout }: { onLogout: () => void }) {
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<Trip[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
 
   async function load() {
@@ -43,8 +43,16 @@ export function ProfilePage({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {stats && <StatsView stats={stats} />}
-      <TripsList trips={trips} />
+      {stats ? (
+        <StatsView stats={stats} />
+      ) : (
+        <section className={cardClass}>Loading…</section>
+      )}
+      {trips ? (
+        <TripsList trips={trips} />
+      ) : (
+        <section className={cardClass}>Loading…</section>
+      )}
       <button className={`${secondaryButtonClass} w-full`} onClick={onLogout}>
         Log out
       </button>

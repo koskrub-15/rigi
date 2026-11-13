@@ -16,3 +16,8 @@ class TripResponse(BaseModel):
     to_zone: Zone
     zones: int = Field(ge=1)
     forgotten: bool = False
+
+
+class OpenTripResponse(BaseModel):
+    start: datetime
+    from_zone: Zone

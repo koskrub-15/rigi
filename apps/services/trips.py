@@ -4,11 +4,11 @@ from apps.core.enums import ScanType
 from apps.core.tariffs import MAX_TRIP_DURATION
 from apps.models.scan import ScanModel
 from apps.schemas.stats import PerDaySchema
-from apps.schemas.trip import TripResponse
+from apps.schemas.trip import OpenTripResponse, TripResponse
 from datetime import date, datetime
 from apps.core.datetimes import to_naive_utc
 from sqlalchemy.ext.asyncio import AsyncSession
-from apps.CRUD.scan import get_scans
+from apps.CRUD.scan import get_last_scan, get_scans
 from collections import deque
 from apps.core.zones import ZONES_GRAPH
 from typing import Mapping
@@ -140,3 +140,17 @@ def make_farthest_trip(
         to_zone=longest_trip[-1],
         zones=len(longest_trip),
     )
+
+
+async def search_opened_trip(
+    *, db: AsyncSession, user_id: int, now: datetime
+) -> OpenTripResponse | None:
+    scan = await get_last_scan(db=db, user_id=user_id)
+    if scan is not None:
+        if (
+            scan.scan_type == ScanType.CHECK_IN
+            and to_naive_utc(now) - scan.timestamp < MAX_TRIP_DURATION
+        ):
+            start, from_zone = scan.timestamp, scan.zone
+            return OpenTripResponse(start=start, from_zone=from_zone)
+    return None
