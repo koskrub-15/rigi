@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import "chart.js/auto";
-
 import { buttonClass, cardClass, secondaryButtonClass } from "../styles";
 
 import { previousMonth } from "../month";

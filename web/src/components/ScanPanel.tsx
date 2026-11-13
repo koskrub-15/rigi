@@ -1,5 +1,4 @@
 import { useState } from "react";
-import "chart.js/auto";
 import { Scanner, type IDetectedBarcode } from "@yudiel/react-qr-scanner";
 
 import {

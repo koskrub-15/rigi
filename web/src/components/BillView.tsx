@@ -1,5 +1,3 @@
-import "chart.js/auto";
-
 import { cardClass } from "../styles";
 
 import type { Bill } from "../types";

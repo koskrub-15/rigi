@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { API } from "./api";
-import { Header } from "./components/Header";
-import { Home } from "./components/Home";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ScanPage } from "./pages/ScanPage";
+import { TicketsPage } from "./pages/TicketsPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { Layout } from "./components/Layout";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("access_token"));
@@ -28,18 +30,18 @@ function App() {
         <div className="mx-auto max-w-md p-4">
           <Routes>
             <Route
-              path="/"
-              element={
-                token ? (
-                  <>
-                    <Header onLogout={logout} />
-                    <Home onLogout={logout} />
-                  </>
-                ) : (
-                  <Navigate to="/login" replace />
-                )
-              }
-            />
+              element={token ? <Layout /> : <Navigate to="/login" replace />}
+            >
+              <Route index element={<ScanPage onLogout={logout} />} />
+              <Route
+                path="tickets"
+                element={<TicketsPage onLogout={logout} />}
+              />
+              <Route
+                path="profile"
+                element={<ProfilePage onLogout={logout} />}
+              />
+            </Route>
             <Route
               path="/login"
               element={

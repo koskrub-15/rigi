@@ -1,7 +1,4 @@
-import "chart.js/auto";
-
 import { cardClass } from "../styles";
-
 import type { Trip } from "../types";
 import { TIME_FORMAT } from "../format";
 
