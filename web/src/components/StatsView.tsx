@@ -11,7 +11,7 @@ export function StatsView({ stats }: { stats: Stats }) {
     <section className={cardClass}>
       <h2 className="text-lg font-semibold mb-3">Statistics</h2>
       {stats.trips_count === 0 ? (
-        <p className="text-sm text-slate-500">No trips this month</p>
+        <p className="text-sm text-slate-500">No trips in this period</p>
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3">
