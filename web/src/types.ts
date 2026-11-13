@@ -44,3 +44,5 @@ export type OpenedTrip = {
   start: string;
   from_zone: string;
 };
+
+export type Period = 1 | 3 | 12;
