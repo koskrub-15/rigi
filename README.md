@@ -239,3 +239,7 @@ app has its own deploy token.
 - A zone code never expires, so a photo of it works anywhere. Rotating codes or a
   location check would fix that.
 - Offline, the app opens but shows no data: scans, trips and the bill need the API.
+
+## 📄 License
+
+[MIT](LICENSE)
