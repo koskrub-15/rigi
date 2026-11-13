@@ -68,3 +68,40 @@ async def test_singles_price_counts_zones(auth_client: AsyncClient):
 
     assert stats["singles_price"] == 15
     assert stats["paid"] == 14
+
+
+async def test_paid_across_september_and_october(auth_client: AsyncClient):
+    for day in range(28, 31):
+        for hour in ("08", "18"):
+            await ride(
+                auth_client,
+                f"2026-09-{day:02d}T{hour}:00",
+                f"2026-09-{day:02d}T{hour}:30",
+            )
+    for day in range(1, 5):
+        for hour in ("08", "18"):
+            await ride(
+                auth_client,
+                f"2026-10-{day:02d}T{hour}:00",
+                f"2026-10-{day:02d}T{hour}:30",
+            )
+
+    stats = await get_stats(
+        auth_client,
+        "2026-09-28T00:00",
+        "2026-10-05T00:00",
+    )
+
+    assert stats["paid"] == 42
+
+
+async def test_reversed_period_returns_unprocessable_entity(auth_client: AsyncClient):
+    response = await auth_client.get(
+        "/stats",
+        params={
+            "date_from": "2026-10-05T00:00",
+            "date_to": "2026-09-28T00:00",
+        },
+    )
+
+    assert response.status_code == 422

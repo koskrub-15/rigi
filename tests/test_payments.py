@@ -56,6 +56,14 @@ async def test_pay_bill_returns_checkout_url_and_sends_expected_payment_data(
     line_item = captured_params["line_items"][0]
     assert line_item["price_data"]["unit_amount"] == bill.total * 100
     assert line_item["price_data"]["currency"] == currency
+    assert (
+        captured_params["success_url"]
+        == f"{payments.settings.WEB_URL}/tickets?payment=success"
+    )
+    assert (
+        captured_params["cancel_url"]
+        == f"{payments.settings.WEB_URL}/tickets?payment=cancel"
+    )
     assert captured_params["metadata"] == {"bill_id": str(bill.id)}
 
 
