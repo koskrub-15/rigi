@@ -4,6 +4,7 @@ import { monthBounds } from "../month";
 import type { Bill } from "../types";
 import { BillView } from "../components/BillView";
 import { ClosedBills } from "../components/ClosedBills";
+import { cardClass } from "../styles";
 
 export function TicketsPage({ onLogout }: { onLogout: () => void }) {
   const [bill, setBill] = useState<Bill | null>(null);
@@ -32,7 +33,11 @@ export function TicketsPage({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {bill && <BillView bill={bill} />}
+      {bill ? (
+        <BillView bill={bill} />
+      ) : (
+        <section className={cardClass}>Loading…</section>
+      )}
       <ClosedBills onLogout={onLogout} />
     </div>
   );
