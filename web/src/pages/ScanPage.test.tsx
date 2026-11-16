@@ -91,3 +91,21 @@ test("calls onLogout when loading returns 401", async () => {
     expect(onLogout).toHaveBeenCalledOnce();
   });
 });
+
+test("shows fallback error when detail is not a string", async () => {
+  mockFetch
+    .mockResolvedValueOnce(Response.json(null))
+    .mockResolvedValueOnce(
+      Response.json({ detail: ["Field required"] }, { status: 422 }),
+    );
+
+  const user = userEvent.setup();
+
+  render(<ScanPage onLogout={vi.fn()} />);
+
+  await user.type(screen.getByRole("textbox"), "invalid-code");
+
+  await user.click(screen.getByRole("button", { name: "Check in" }));
+
+  await screen.findByText("Invalid QR code");
+});
