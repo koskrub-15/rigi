@@ -53,3 +53,17 @@ test("calls onLogout once when preview returns 401", async () => {
     expect(onLogout).toHaveBeenCalledOnce();
   });
 });
+
+test("shows error when preview request fails", async () => {
+  mockFetch.mockImplementation(async (path) => {
+    if (path.startsWith("/bills/preview")) {
+      throw new TypeError("Failed to fetch");
+    }
+
+    return Response.json([]);
+  });
+
+  render(<TicketsPage onLogout={vi.fn()} />);
+
+  await screen.findByText("Could not load");
+});

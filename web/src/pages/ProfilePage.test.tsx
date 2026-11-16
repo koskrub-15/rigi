@@ -101,3 +101,13 @@ test("shows trips in reverse order", async () => {
     screen.getAllByText(/ → /).map((element) => element.textContent),
   ).toEqual(["B → C", "A → B"]);
 });
+
+test("shows error when trips request fails", async () => {
+  mockFetch
+    .mockResolvedValueOnce(Response.json({}, { status: 500 }))
+    .mockResolvedValueOnce(Response.json(emptyStats));
+
+  render(<ProfilePage onLogout={vi.fn()} />);
+
+  await screen.findByText("Could not load");
+});
