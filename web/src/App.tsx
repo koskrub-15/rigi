@@ -12,6 +12,9 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem("access_token"));
 
   function logout() {
+    if (!localStorage.getItem("access_token")) {
+      return;
+    }
     fetch(`${API}/auth/logout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
