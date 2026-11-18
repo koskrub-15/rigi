@@ -14,10 +14,12 @@ export function useApi<T>(
   useEffect(() => {
     setData(null);
     setError("");
+    let ignore = false;
 
     async function run() {
       try {
         const response = await apiFetch(path);
+        if (ignore) return;
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -28,14 +30,19 @@ export function useApi<T>(
 
           return;
         }
-
         const result = (await response.json()) as T;
+        if (ignore) return;
         setData(result);
       } catch {
+        if (ignore) return;
         setError("Could not load");
       }
     }
     run();
+
+    return () => {
+      ignore = true;
+    };
   }, [path]);
   return { data, error };
 }

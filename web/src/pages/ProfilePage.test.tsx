@@ -1,5 +1,5 @@
 import userEvent from "@testing-library/user-event";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { apiFetch } from "../api";
@@ -110,4 +110,46 @@ test("shows error when trips request fails", async () => {
   render(<ProfilePage onLogout={vi.fn()} />);
 
   await screen.findByText("Could not load");
+});
+
+test("ignores stale trips response", async () => {
+  let resolveSlow!: (r: Response) => void;
+  const slow = new Promise<Response>((resolve) => {
+    resolveSlow = resolve;
+  });
+  const tripAB: Trip = {
+    start: "2026-11-03T08:00:00",
+    end: "2026-11-03T08:30:00",
+    from_zone: "A",
+    to_zone: "B",
+    zones: 2,
+    forgotten: false,
+  };
+  const tripBC: Trip = {
+    start: "2026-11-04T08:00:00",
+    end: "2026-11-04T08:30:00",
+    from_zone: "B",
+    to_zone: "C",
+    zones: 2,
+    forgotten: false,
+  };
+  mockFetch
+    .mockReturnValueOnce(slow)
+    .mockResolvedValueOnce(Response.json(emptyStats))
+    .mockResolvedValueOnce(Response.json([tripBC]))
+    .mockResolvedValueOnce(Response.json(emptyStats));
+
+  const user = userEvent.setup();
+  render(<ProfilePage onLogout={vi.fn()} />);
+
+  await user.click(screen.getByRole("button", { name: "Last 3 months" }));
+  await screen.findByText("B → C");
+
+  await act(async () => {
+    resolveSlow(Response.json([tripAB]));
+  });
+  expect(screen.getByText("B → C")).toBeInTheDocument();
+
+  expect(screen.queryByText("A → B")).not.toBeInTheDocument();
+  expect(mockFetch).toHaveBeenCalledTimes(4);
 });
