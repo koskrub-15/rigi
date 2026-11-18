@@ -14,25 +14,33 @@ export function RegisterPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    const response = await fetch(`${API}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: email,
-        first_name: firstName,
-        last_name: lastName,
-        password: password,
-      }),
-    });
-    if (!response.ok) {
-      if (response.status === 409) setError("this email is already registered");
-      if (response.status === 422)
-        setError(
-          "Check your input: Password must be at least 8 characters long, first name and last name are not empty and email must be valid",
-        );
-      return;
+    try {
+      const response = await fetch(`${API}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          first_name: firstName,
+          last_name: lastName,
+          password: password,
+        }),
+      });
+      if (!response.ok) {
+        if (response.status === 409) {
+          setError("this email is already registered");
+        } else if (response.status === 422) {
+          setError(
+            "Check your input: Password must be at least 8 characters long, first name and last name are not empty and email must be valid",
+          );
+        } else {
+          setError("Something went wrong, try again");
+        }
+        return;
+      }
+      navigate("/login");
+    } catch {
+      setError("Something went wrong, try again");
     }
-    navigate("/login");
   }
 
   return (

@@ -70,3 +70,23 @@ test("invalid input", async () => {
   expect(screen.getByRole("heading", { name: "Sign up" })).toBeInTheDocument();
   expect(screen.queryByText("Login screen")).not.toBeInTheDocument();
 });
+
+test("shows a generic error on a server error", async () => {
+  fetchMock.mockResolvedValue(Response.json({}, { status: 500 }));
+
+  await fillAndSubmit("password");
+
+  await screen.findByText("Something went wrong, try again");
+  expect(screen.getByRole("heading", { name: "Sign up" })).toBeInTheDocument();
+  expect(screen.queryByText("Login screen")).not.toBeInTheDocument();
+});
+
+test("shows a generic error when offline", async () => {
+  fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+
+  await fillAndSubmit("password123");
+
+  await screen.findByText("Something went wrong, try again");
+  expect(screen.getByRole("heading", { name: "Sign up" })).toBeInTheDocument();
+  expect(screen.queryByText("Login screen")).not.toBeInTheDocument();
+});
