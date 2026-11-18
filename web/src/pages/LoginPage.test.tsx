@@ -50,3 +50,22 @@ test("successful login", async () => {
   expect(localStorage.getItem("access_token")).toBe("a1");
   expect(localStorage.getItem("refresh_token")).toBe("r1");
 });
+
+test("invalid credentials", async () => {
+  fetchMock.mockResolvedValue(Response.json({}, { status: 401 }));
+  const onLogin = vi.fn();
+  const user = userEvent.setup();
+
+  render(
+    <MemoryRouter>
+      <LoginPage onLogin={onLogin} />
+    </MemoryRouter>,
+  );
+
+  await user.type(screen.getByPlaceholderText("Email"), "test@example.com");
+  await user.type(screen.getByPlaceholderText("Password"), "password123");
+  await user.click(screen.getByRole("button", { name: /submit/i }));
+  await screen.findByText("incorrect password or email");
+  expect(onLogin).not.toHaveBeenCalled();
+  expect(localStorage.getItem("access_token")).toBeNull();
+});
