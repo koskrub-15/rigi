@@ -69,3 +69,41 @@ test("invalid credentials", async () => {
   expect(onLogin).not.toHaveBeenCalled();
   expect(localStorage.getItem("access_token")).toBeNull();
 });
+
+test("shows a generic error on a server error", async () => {
+  fetchMock.mockResolvedValue(Response.json({}, { status: 500 }));
+  const onLogin = vi.fn();
+  const user = userEvent.setup();
+
+  render(
+    <MemoryRouter>
+      <LoginPage onLogin={onLogin} />
+    </MemoryRouter>,
+  );
+
+  await user.type(screen.getByPlaceholderText("Email"), "test@example.com");
+  await user.type(screen.getByPlaceholderText("Password"), "password123");
+  await user.click(screen.getByRole("button", { name: /submit/i }));
+  await screen.findByText("Something went wrong, try again");
+  expect(onLogin).not.toHaveBeenCalled();
+  expect(localStorage.getItem("access_token")).toBeNull();
+});
+
+test("shows a generic error when offline", async () => {
+  fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+  const onLogin = vi.fn();
+  const user = userEvent.setup();
+
+  render(
+    <MemoryRouter>
+      <LoginPage onLogin={onLogin} />
+    </MemoryRouter>,
+  );
+
+  await user.type(screen.getByPlaceholderText("Email"), "test@example.com");
+  await user.type(screen.getByPlaceholderText("Password"), "password123");
+  await user.click(screen.getByRole("button", { name: /submit/i }));
+  await screen.findByText("Something went wrong, try again");
+  expect(onLogin).not.toHaveBeenCalled();
+  expect(localStorage.getItem("access_token")).toBeNull();
+});

@@ -10,19 +10,27 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => void }) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    const response = await fetch(`${API}/auth/login`, {
-      method: "POST",
-      body: new URLSearchParams({ username: email, password: password }),
-    });
-    if (!response.ok) {
-      if (response.status === 401) setError("incorrect password or email");
-      return;
+    try {
+      const response = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        body: new URLSearchParams({ username: email, password: password }),
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError("incorrect password or email");
+        } else {
+          setError("Something went wrong, try again");
+        }
+        return;
+      }
+      const data = await response.json();
+      const { access_token, refresh_token } = data;
+      localStorage.setItem("access_token", access_token);
+      localStorage.setItem("refresh_token", refresh_token);
+      onLogin(access_token);
+    } catch {
+      setError("Something went wrong, try again");
     }
-    const data = await response.json();
-    const { access_token, refresh_token } = data;
-    localStorage.setItem("access_token", access_token);
-    localStorage.setItem("refresh_token", refresh_token);
-    onLogin(access_token);
   }
 
   return (
