@@ -50,3 +50,23 @@ test("successful register", async () => {
   expect(fetchMock.mock.calls[0][0]).toMatch(/\/auth\/register$/);
   expect(await screen.findByText("Login screen")).toBeInTheDocument();
 });
+
+test("email is already taken", async () => {
+  fetchMock.mockResolvedValue(Response.json({}, { status: 409 }));
+
+  await fillAndSubmit("password123");
+
+  await screen.findByText("this email is already registered");
+  expect(screen.getByRole("heading", { name: "Sign up" })).toBeInTheDocument();
+  expect(screen.queryByText("Login screen")).not.toBeInTheDocument();
+});
+
+test("invalid input", async () => {
+  fetchMock.mockResolvedValue(Response.json({}, { status: 422 }));
+
+  await fillAndSubmit("password");
+
+  await screen.findByText(/Password must be at least 8 characters/);
+  expect(screen.getByRole("heading", { name: "Sign up" })).toBeInTheDocument();
+  expect(screen.queryByText("Login screen")).not.toBeInTheDocument();
+});
