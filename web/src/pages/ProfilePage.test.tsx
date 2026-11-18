@@ -198,3 +198,49 @@ test("ignores stale trips error", async () => {
   expect(screen.getByText("B → C")).toBeInTheDocument();
   expect(screen.queryByText("Could not load")).not.toBeInTheDocument();
 });
+
+test("ignores stale trips server error", async () => {
+  let resolveSlow!: (response: Response) => void;
+  const slow = new Promise<Response>((resolve) => {
+    resolveSlow = resolve;
+  });
+
+  let resolveFresh!: (response: Response) => void;
+  const fresh = new Promise<Response>((resolve) => {
+    resolveFresh = resolve;
+  });
+
+  const tripBC: Trip = {
+    start: "2026-11-04T08:00:00",
+    end: "2026-11-04T08:30:00",
+    from_zone: "B",
+    to_zone: "C",
+    zones: 2,
+    forgotten: false,
+  };
+
+  mockFetch
+    .mockReturnValueOnce(slow)
+    .mockResolvedValueOnce(Response.json(emptyStats))
+    .mockReturnValueOnce(fresh)
+    .mockResolvedValueOnce(Response.json(emptyStats));
+
+  const user = userEvent.setup();
+  render(<ProfilePage onLogout={vi.fn()} />);
+
+  await user.click(screen.getByRole("button", { name: "Last 3 months" }));
+
+  await act(async () => {
+    resolveSlow(Response.json({}, { status: 500 }));
+  });
+
+  expect(screen.queryByText("Could not load")).not.toBeInTheDocument();
+
+  await act(async () => {
+    resolveFresh(Response.json([tripBC]));
+  });
+
+  await screen.findByText("B → C");
+
+  expect(screen.queryByText("Could not load")).not.toBeInTheDocument();
+});
