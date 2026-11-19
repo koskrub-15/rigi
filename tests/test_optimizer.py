@@ -6,7 +6,7 @@ from apps.core.enums import TicketType
 from apps.core.tariffs import tariffs
 from apps.schemas.ticket import TicketResponse
 from apps.schemas.trip import TripResponse
-from apps.services.optimizer import min_cost, optimizer
+from apps.services.optimizer import min_cost, optimizer, total_price
 
 
 def trip(day: int, hh: int, zones: int = 1) -> TripResponse:
@@ -249,3 +249,15 @@ def test_every_trip_is_covered():
         trips = random_trips(rng)
         tickets = optimizer(trips)
         assert all(is_covered(t, tickets) for t in trips)
+
+
+def test_optimizer_matches_brute_force_with_random_tariffs(monkeypatch):
+    rng = random.Random(42)
+    for _ in range(5000):
+        monkeypatch.setitem(tariffs, TicketType.SINGLE_TICKET, rng.randint(1, 10))
+        monkeypatch.setitem(tariffs, TicketType.DAY_TICKET, rng.randint(1, 40))
+        monkeypatch.setitem(tariffs, TicketType.WEEKLY_TICKET, rng.randint(1, 120))
+        trips = random_trips(rng)
+
+        assert min_cost(trips) == brute_force_cost(trips)
+        assert total_price(optimizer(trips)) == min_cost(trips)
