@@ -13,7 +13,7 @@ def at(hh: int, mm: int = 0) -> datetime:
 
 
 def scan(kind: ScanType, hh: int, mm: int = 0, zone: str = "A") -> ScanModel:
-    # ScanModel можно создать без БД — это просто объект Python
+    # ScanModel needs no database: it is a plain Python object
     return ScanModel(user_id=1, scan_type=kind, timestamp=at(hh, mm), zone=zone)
 
 
@@ -55,7 +55,7 @@ def test_farthest_path_returns_longest_shortest_route():
     assert farthest_path(graph=graph, start_zone="A") == ["A", "B", "D"]
 
 
-# --- таблица из брифинга целиком ---
+# --- a whole day ---
 
 
 def test_full_day():
@@ -63,10 +63,10 @@ def test_full_day():
         scan(IN, 8, 0),
         scan(OUT, 8, 30),
         scan(IN, 12, 0),
-        scan(IN, 18, 0),  # забыл check_out
+        scan(IN, 18, 0),  # forgot check_out
         scan(OUT, 18, 40),
-        scan(OUT, 19, 0),  # out без открытой поездки
-        scan(IN, 21, 0),  # незакрыта до конца
+        scan(OUT, 19, 0),  # out without an open trip
+        scan(IN, 21, 0),  # still open at the end
     ]
     assert build(scans) == [
         trip(8, 0, 8, 30),
@@ -75,7 +75,7 @@ def test_full_day():
     ]
 
 
-# --- по клетке таблицы 2x2 ---
+# --- one test per cell of the 2x2 table ---
 
 
 def test_in_then_out():
@@ -83,7 +83,7 @@ def test_in_then_out():
 
 
 def test_in_then_in_closes_first():
-    # Первый вход закрывается как забытая поездка, второй остаётся открытым.
+    """The first check_in closes as a forgotten trip, the second stays open."""
     assert build([scan(IN, 8), scan(IN, 9)], now=at(11, 59)) == [
         trip(8, 0, 11, 0, to_zone="F", zones=4, forgotten=True)
     ]
@@ -101,7 +101,7 @@ def test_empty():
     assert build([]) == []
 
 
-# --- зоны ---
+# --- zones ---
 
 
 def test_trip_takes_zones_from_both_scans():

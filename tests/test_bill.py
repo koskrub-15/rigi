@@ -91,7 +91,7 @@ async def test_other_users_trips_are_not_billed(
 
 
 async def test_period_with_timezone(auth_client: AsyncClient):
-    # так время шлёт JS: new Date().toISOString() -> "...Z"
+    """JS sends time like this: new Date().toISOString() -> "...Z"."""
     await ride(auth_client, "2026-10-14T08:00", "2026-10-14T08:30")
 
     bill = await get_bill(auth_client, "2026-10-01T00:00Z", "2026-11-01T00:00Z")
@@ -100,7 +100,7 @@ async def test_period_with_timezone(auth_client: AsyncClient):
 
 
 async def test_scan_with_offset_is_stored_in_utc(auth_client: AsyncClient):
-    # 10:00 по Берлину (+02:00) — это 08:00 UTC
+    """10:00 in Berlin (+02:00) is 08:00 UTC."""
     await ride(auth_client, "2026-10-14T10:00+02:00", "2026-10-14T10:30+02:00")
 
     bill = await get_bill(auth_client, "2026-10-01T00:00", "2026-11-01T00:00")
@@ -109,7 +109,7 @@ async def test_scan_with_offset_is_stored_in_utc(auth_client: AsyncClient):
 
 
 async def test_single_price_depends_on_zones(auth_client: AsyncClient):
-    # A -> B: 2 зоны, разовый 6 (дешевле дневного 8)
+    """A -> B: 2 zones, a single costs 6 (cheaper than a day ticket at 8)."""
     await ride(auth_client, "2026-10-14T08:00", "2026-10-14T08:30", "A", "B")
 
     bill = await get_bill(auth_client, "2026-10-01T00:00", "2026-11-01T00:00")
@@ -120,7 +120,7 @@ async def test_single_price_depends_on_zones(auth_client: AsyncClient):
 
 
 async def test_long_trip_gets_day_ticket(auth_client: AsyncClient):
-    # A -> E: 3 зоны, разовый 9 > дневной 8 — дневной на всех зонах выгоднее
+    """A -> E: 3 zones, a single costs 9 > day ticket 8, so the day ticket wins."""
     await ride(auth_client, "2026-10-14T08:00", "2026-10-14T08:30", "A", "E")
 
     bill = await get_bill(auth_client, "2026-10-01T00:00", "2026-11-01T00:00")

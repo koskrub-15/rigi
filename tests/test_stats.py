@@ -46,7 +46,7 @@ async def test_empty_period(auth_client: AsyncClient):
 
 
 async def test_paid_equals_bill_total(auth_client: AsyncClient):
-    # 4 поездки в один день: дневной (8) дешевле разовых (12)
+    """4 trips in one day: a day ticket (8) is cheaper than singles (12)."""
     for hour in ["07", "10", "13", "16"]:
         await ride(auth_client, f"2026-10-14T{hour}:00", f"2026-10-14T{hour}:30")
     await ride(auth_client, "2026-10-20T08:00", "2026-10-20T08:30")
@@ -59,8 +59,10 @@ async def test_paid_equals_bill_total(auth_client: AsyncClient):
 
 
 async def test_singles_price_counts_zones(auth_client: AsyncClient):
-    # A -> B (2 зоны) и B -> F (3 зоны) в разные дни: разовыми 6 + 9 = 15,
-    # оптимально 6 + 8 (дневной на длинную)
+    """A -> B (2 zones) and B -> F (3 zones) on different days.
+
+    Singles cost 6 + 9 = 15, the optimum is 6 + 8 (a day ticket for the long trip).
+    """
     await ride(auth_client, "2026-10-13T08:00", "2026-10-13T08:30", "A", "B")
     await ride(auth_client, "2026-10-14T08:00", "2026-10-14T08:30", "B", "F")
 
