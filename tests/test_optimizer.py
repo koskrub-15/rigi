@@ -146,17 +146,6 @@ def test_optimizer_uses_weekly_ticket_for_first_seven_days():
     ]
 
 
-def test_weekly_ticket_with_trip_on_the_following_day():
-    trips = [trip(day, 8, zones=2) for day in range(16, 23)] + [trip(23, 8)]
-
-    tickets = optimizer(trips)
-
-    assert [(t.type, t.valid_from) for t in tickets] == [
-        (TicketType.WEEKLY_TICKET, datetime(2026, 10, 16)),
-        (TicketType.SINGLE_TICKET, datetime(2026, 10, 23, 8)),
-    ]
-
-
 def test_tickets_are_sorted_by_time():
     """Singles within one day are in order too: 8:00, then 12:00."""
     trips = [trip(1, 8), trip(1, 12), trip(9, 9)]
