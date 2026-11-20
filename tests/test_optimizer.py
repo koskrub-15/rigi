@@ -6,11 +6,11 @@ from apps.core.enums import TicketType
 from apps.core.tariffs import tariffs
 from apps.schemas.ticket import TicketResponse
 from apps.schemas.trip import TripResponse
-from apps.services.optimizer import min_cost, optimizer
+from apps.services.optimizer import min_cost, optimizer, total_price
 
 
 def trip(day: int, hh: int, zones: int = 1) -> TripResponse:
-    # from/to для оптимизатора не важны, он смотрит только на zones
+    # the optimizer ignores from/to, it only looks at zones
     return TripResponse(
         start=datetime(2026, 10, day, hh, 0),
         end=datetime(2026, 10, day, hh, 30),
@@ -74,7 +74,7 @@ def test_min_cost_order_of_trips_does_not_matter():
 
 
 def test_min_cost_two_trips_with_same_start():
-    # регрессия: цены разовых лежали в словаре по trip.start и затирали друг друга
+    """Regression: single prices were keyed by trip.start and overwrote each other."""
     assert min_cost([trip(13, 8), trip(13, 8)]) == 6
 
 
@@ -87,17 +87,17 @@ def test_min_cost_three_zones_cheaper_with_day_ticket():
 
 
 def test_min_cost_mixed_zones_in_one_day():
-    # 3 + 3 = 6 < 8: разовые, хотя поездок две
+    # 3 + 3 = 6 < 8: singles, even with two trips
     assert min_cost([trip(13, 8), trip(13, 18)]) == 6
-    # 3 + 6 = 9 > 8: вторая через 2 зоны — уже дневной
+    # 3 + 6 = 9 > 8: the second trip crosses 2 zones, so a day ticket
     assert min_cost([trip(13, 8), trip(13, 18, zones=2)]) == 8
 
 
-# --- какие именно билеты ---
+# --- which tickets exactly ---
 
 
 def test_example_from_briefing():
-    # день 1: три поездки -> дневной (8 < 9); дни 10 и 11: по одной -> разовые
+    # day 1: three trips -> day ticket (8 < 9); days 10 and 11: one each -> singles
     trips = [trip(1, 8), trip(1, 12), trip(1, 18), trip(10, 8), trip(11, 8)]
 
     tickets = optimizer(trips)
@@ -107,7 +107,7 @@ def test_example_from_briefing():
         TicketType.SINGLE_TICKET,
         TicketType.SINGLE_TICKET,
     ]
-    assert tickets[0].valid_from == datetime(2026, 10, 1)  # полночь дня
+    assert tickets[0].valid_from == datetime(2026, 10, 1)  # midnight
     assert sum(t.price for t in tickets) == 14
 
 
@@ -120,8 +120,34 @@ def test_weekly_starts_at_first_day_of_window():
     assert tickets[0].valid_from == datetime(2026, 10, 13)
 
 
+def test_optimizer_uses_weekly_ticket_for_last_seven_days():
+    trips = [
+        trip(day, 8, zones) for day, zones in enumerate([1, 2, 2, 2, 2, 2, 2, 2], 1)
+    ]
+
+    tickets = optimizer(trips)
+
+    assert [(t.type, t.valid_from) for t in tickets] == [
+        (TicketType.SINGLE_TICKET, datetime(2026, 10, 1, 8)),
+        (TicketType.WEEKLY_TICKET, datetime(2026, 10, 2)),
+    ]
+
+
+def test_optimizer_uses_weekly_ticket_for_first_seven_days():
+    trips = [
+        trip(day, 8, zones) for day, zones in enumerate([2, 2, 2, 2, 2, 2, 2, 1], 1)
+    ]
+
+    tickets = optimizer(trips)
+
+    assert [(t.type, t.valid_from) for t in tickets] == [
+        (TicketType.WEEKLY_TICKET, datetime(2026, 10, 1)),
+        (TicketType.SINGLE_TICKET, datetime(2026, 10, 8, 8)),
+    ]
+
+
 def test_tickets_are_sorted_by_time():
-    # внутри одного дня разовые тоже должны идти по порядку: 8:00, потом 12:00
+    """Singles within one day are in order too: 8:00, then 12:00."""
     trips = [trip(1, 8), trip(1, 12), trip(9, 9)]
 
     tickets = optimizer(trips)
@@ -141,7 +167,7 @@ def test_tickets_are_sorted_even_if_trips_are_not():
     assert [t.valid_from for t in tickets] == sorted(t.valid_from for t in tickets)
 
 
-# --- свойства на случайных входах ---
+# --- properties on random inputs ---
 
 
 def random_trips(rng: random.Random) -> list[TripResponse]:
@@ -154,8 +180,11 @@ def random_trips(rng: random.Random) -> list[TripResponse]:
 
 
 def brute_force_cost(trips: list[TripResponse]) -> int:
-    # эталон: честный перебор. Самый ранний непокрытый день закрываем
-    # разовыми, дневным или недельным, который НАЧИНАЕТСЯ в этот день
+    """Reference: exhaustive search.
+
+    The earliest uncovered day is covered by singles, a day ticket, or a weekly
+    ticket that STARTS on that day.
+    """
     per_day: Counter[date] = Counter()
     for t in trips:
         per_day[t.start.date()] += tariffs[TicketType.SINGLE_TICKET] * t.zones
@@ -212,3 +241,15 @@ def test_every_trip_is_covered():
         trips = random_trips(rng)
         tickets = optimizer(trips)
         assert all(is_covered(t, tickets) for t in trips)
+
+
+def test_optimizer_matches_brute_force_with_random_tariffs(monkeypatch):
+    rng = random.Random(42)
+    for _ in range(5000):
+        monkeypatch.setitem(tariffs, TicketType.SINGLE_TICKET, rng.randint(1, 10))
+        monkeypatch.setitem(tariffs, TicketType.DAY_TICKET, rng.randint(1, 40))
+        monkeypatch.setitem(tariffs, TicketType.WEEKLY_TICKET, rng.randint(1, 120))
+        trips = random_trips(rng)
+
+        assert min_cost(trips) == brute_force_cost(trips)
+        assert total_price(optimizer(trips)) == min_cost(trips)

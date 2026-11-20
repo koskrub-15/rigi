@@ -5,7 +5,7 @@ import pytest
 from apps.core.zones import ZONES_GRAPH
 from apps.services.trips import bfs_zones
 
-# Карта:
+# Map:
 #   A ─ B ─ D ─ F
 #   │       │   │
 #   C ──────┘   │
@@ -21,7 +21,7 @@ def is_valid_path(graph, path: list[str], start: str, end: str) -> bool:
     )
 
 
-# --- конкретные пути (на карте они единственные кратчайшие) ---
+# --- concrete paths (each is the only shortest one on the map) ---
 
 
 def test_same_zone():
@@ -42,8 +42,10 @@ def test_reverse_direction():
 
 
 def test_does_not_take_first_long_branch():
-    # поиск в глубину по порядку соседей пошёл бы B-D-F-E-C (5 зон),
-    # кратчайших путей два (B-A-C и B-D-C), оба по 3 зоны
+    """Depth-first search in neighbour order would go B-D-F-E-C (5 zones).
+
+    There are two shortest paths (B-A-C and B-D-C), both 3 zones.
+    """
     path = bfs_zones(ZONES_GRAPH, "B", "C")
 
     assert len(path) == 3
@@ -64,19 +66,19 @@ def test_unknown_zone(start: str, end: str):
         bfs_zones(ZONES_GRAPH, start, end)
 
 
-# --- против перебора на случайных графах ---
+# --- against brute force on random graphs ---
 
 
 def random_graph(rng: random.Random) -> dict[str, tuple[str, ...]]:
     n = rng.randint(1, 8)
     names = [str(i) for i in range(n)]
     edges: dict[str, set[str]] = {v: set() for v in names}
-    # остовное дерево — чтобы граф был связный
+    # a spanning tree, so the graph is connected
     for i in range(1, n):
         j = rng.randrange(i)
         edges[names[i]].add(names[j])
         edges[names[j]].add(names[i])
-    # плюс случайные лишние рёбра, чтобы появились циклы
+    # plus random extra edges, so cycles appear
     for _ in range(rng.randint(0, n)):
         a, b = rng.choice(names), rng.choice(names)
         if a != b:
@@ -91,7 +93,7 @@ def random_graph(rng: random.Random) -> dict[str, tuple[str, ...]]:
 
 
 def brute_force_len(graph, start: str, end: str) -> int:
-    # эталон: перебор всех простых путей, минимум по числу зон
+    """Reference: try every simple path, take the fewest zones."""
     best = len(graph) + 1
 
     def walk(v: str, seen: set[str]) -> None:
