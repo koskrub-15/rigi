@@ -7,6 +7,17 @@ from collections import defaultdict
 
 
 def optimizer(trips: list[TripResponse]) -> list[TicketResponse]:
+    """Return the cheapest set of tickets covering the trips, sorted by valid_from.
+
+    Walks the table from fill_table backwards: start at i = len(days), read
+    choice[i] = (type, k), buy that ticket and jump to i = k, until i == 0.
+
+    A day or weekly ticket is one ticket that starts at midnight of days[k]:
+    for a weekly ticket that is the first day it covers. A single ticket means
+    one ticket per trip of days[i - 1], priced by its zones.
+
+    O(n log n) in trips: grouping trips by day is linear, the final sort is not.
+    """
     list_of_tickets = []
     table = fill_table(trips=trips)
     i = len(table[0])
@@ -51,6 +62,22 @@ def min_cost(trips: list[TripResponse]) -> int:
 def fill_table(
     trips: list[TripResponse],
 ) -> tuple[list[date], dict[int, int], dict[int, tuple[TicketType, int]]]:
+    """Dynamic programming over travel days; returns (days, best, choice).
+
+    days      -- sorted travel dates without repeats; days[i - 1] is "day i".
+    best[i]   -- cheapest cost of covering days 1..i; best[0] = 0.
+    choice[i] -- (ticket type, k): the last ticket covers days k+1..i, the rest
+                 costs best[k]. Single and day tickets give k = i - 1; a weekly
+                 ticket gives k = j, the number of days before its 7-day window.
+
+    On equal cost the later candidate wins, as it overwrites the same buffer key:
+    weekly beats day, day beats single.
+
+    j only grows: days increase, so the window edge increases too, and a day
+    that fell out of one window stays out of every later one. It stops at i - 1
+    at the latest, since days[i - 1] is always inside its own window. So j moves
+    at most len(days) times in total, and the table is filled in O(n).
+    """
     buffer = {}
     best = {}
     choice = {}
