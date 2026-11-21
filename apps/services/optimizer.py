@@ -10,6 +10,12 @@ def optimizer(trips: list[TripResponse]) -> list[TicketResponse]:
     list_of_tickets = []
     table = fill_table(trips=trips)
     i = len(table[0])
+
+    trips_by_day: defaultdict[date, list[TripResponse]] = defaultdict(list)
+
+    for trip in trips:
+        trips_by_day[trip.start.date()].append(trip)
+
     while i > 0:
         type, where_to_past = table[2][i]
         valid = (
@@ -22,15 +28,15 @@ def optimizer(trips: list[TripResponse]) -> list[TicketResponse]:
                 TicketResponse(type=type, valid_from=valid, price=tariffs[type])
             )
         else:
-            for trip in trips:
-                if trip.start.date() == table[0][i - 1]:
-                    list_of_tickets.append(
-                        TicketResponse(
-                            type=TicketType.SINGLE_TICKET,
-                            valid_from=trip.start,
-                            price=get_price_of_single_ticket(trip=trip),
-                        )
+            day = table[0][i - 1]
+            for trip in trips_by_day[day]:
+                list_of_tickets.append(
+                    TicketResponse(
+                        type=TicketType.SINGLE_TICKET,
+                        valid_from=trip.start,
+                        price=get_price_of_single_ticket(trip=trip),
                     )
+                )
 
         i = where_to_past
     list_of_tickets.sort(key=get_valid_from)
