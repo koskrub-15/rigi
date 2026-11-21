@@ -1,12 +1,13 @@
+import calendar
 import random
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta
 
 from apps.core.enums import TicketType
 from apps.core.tariffs import tariffs
 from apps.schemas.ticket import TicketResponse
 from apps.schemas.trip import TripResponse
-from apps.services.optimizer import min_cost, optimizer, total_price
+from apps.services.optimizer import fill_table, min_cost, optimizer, total_price
 
 
 def trip(day: int, hh: int, zones: int = 1) -> TripResponse:
@@ -179,6 +180,70 @@ def random_trips(rng: random.Random) -> list[TripResponse]:
     return trips
 
 
+def random_month_trips(rng: random.Random) -> list[TripResponse]:
+    year = rng.randint(2020, 2035)
+    month = rng.randint(1, 12)
+    days_in_month = calendar.monthrange(year, month)[1]
+    trips = []
+    for _ in range(rng.randint(0, 100)):
+        start = datetime(
+            year,
+            month,
+            rng.randint(1, days_in_month),
+            rng.randrange(24),
+            rng.randrange(60),
+        )
+        trips.append(
+            TripResponse(
+                start=start,
+                end=start + timedelta(minutes=30),
+                from_zone="A",
+                to_zone="A",
+                zones=rng.randint(1, 4),
+            )
+        )
+    rng.shuffle(trips)
+    return trips
+
+
+def reference_fill_table(
+    trips: list[TripResponse],
+) -> tuple[list[date], dict[int, int], dict[int, tuple[TicketType, int]]]:
+    buffer = {}
+    best = {0: 0}
+    choice = {}
+    dates_of_trips = sorted([trip.start.date() for trip in trips])
+    days = list(dict.fromkeys(dates_of_trips))
+    singles_prices: defaultdict[date, int] = defaultdict(int)
+
+    for trip in trips:
+        singles_prices[trip.start.date()] += (
+            tariffs[TicketType.SINGLE_TICKET] * trip.zones
+        )
+
+    for i in range(1, len(days) + 1):
+        j = 0
+        buffer[singles_prices[days[i - 1]] + best[i - 1]] = (
+            TicketType.SINGLE_TICKET,
+            i - 1,
+        )
+        buffer[tariffs[TicketType.DAY_TICKET] + best[i - 1]] = (
+            TicketType.DAY_TICKET,
+            i - 1,
+        )
+        for day in days:
+            if days[i - 1] - timedelta(days=6) > day:
+                j += 1
+        buffer[tariffs[TicketType.WEEKLY_TICKET] + best[j]] = (
+            TicketType.WEEKLY_TICKET,
+            j,
+        )
+        best[i] = min(buffer.keys())
+        choice[i] = buffer[best[i]]
+        buffer.clear()
+    return days, best, choice
+
+
 def brute_force_cost(trips: list[TripResponse]) -> int:
     """Reference: exhaustive search.
 
@@ -241,6 +306,37 @@ def test_every_trip_is_covered():
         trips = random_trips(rng)
         tickets = optimizer(trips)
         assert all(is_covered(t, tickets) for t in trips)
+
+
+def test_fill_table_matches_reference_for_empty_and_single_day_inputs():
+    trips_by_case = [
+        [],
+        [trip(13, 8)],
+        [trip(13, 8, zones=2), trip(13, 12), trip(13, 18, zones=2)],
+    ]
+
+    for trips in trips_by_case:
+        assert fill_table(trips) == reference_fill_table(trips)
+
+
+def test_fill_table_matches_reference_at_six_day_weekly_boundary(monkeypatch):
+    monkeypatch.setitem(tariffs, TicketType.SINGLE_TICKET, 3)
+    monkeypatch.setitem(tariffs, TicketType.DAY_TICKET, 8)
+    monkeypatch.setitem(tariffs, TicketType.WEEKLY_TICKET, 4)
+    trips = [trip(1, 8), trip(7, 8)]
+
+    assert fill_table(trips) == reference_fill_table(trips), trips
+
+
+def test_fill_table_matches_reference_for_thousands_of_random_months(monkeypatch):
+    rng = random.Random(3)
+    for _ in range(3000):
+        monkeypatch.setitem(tariffs, TicketType.SINGLE_TICKET, rng.randint(1, 10))
+        monkeypatch.setitem(tariffs, TicketType.DAY_TICKET, rng.randint(1, 40))
+        monkeypatch.setitem(tariffs, TicketType.WEEKLY_TICKET, rng.randint(1, 120))
+        trips = random_month_trips(rng)
+
+        assert fill_table(trips) == reference_fill_table(trips)
 
 
 def test_optimizer_matches_brute_force_with_random_tariffs(monkeypatch):
