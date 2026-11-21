@@ -13,6 +13,34 @@ week tickets. No ticket machine, no guessing which pass pays off.
 > Live API: **[rigi-api.fly.dev/docs](https://rigi-api.fly.dev/docs)** (Swagger UI).
 > The machines sleep when idle, so the first request takes a few seconds.
 
+## 📲 Try it
+
+1. Open **[rigi-web.fly.dev](https://rigi-web.fly.dev)** on your phone and register.
+2. Keep this page open on another screen and scan a zone to check in, then another
+   one to check out — for example in at **A**, out at **D**: a 3-zone trip.
+3. The trip shows up under trips, and the bill picks the cheapest tickets.
+
+The codes are laid out like the zone map.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/zone-codes/A.png" width="160" alt="QR code of zone A"><br><b>Zone A</b></td>
+    <td align="center"><img src="docs/zone-codes/B.png" width="160" alt="QR code of zone B"><br><b>Zone B</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/zone-codes/C.png" width="160" alt="QR code of zone C"><br><b>Zone C</b></td>
+    <td align="center"><img src="docs/zone-codes/D.png" width="160" alt="QR code of zone D"><br><b>Zone D</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/zone-codes/E.png" width="160" alt="QR code of zone E"><br><b>Zone E</b></td>
+    <td align="center"><img src="docs/zone-codes/F.png" width="160" alt="QR code of zone F"><br><b>Zone F</b></td>
+  </tr>
+</table>
+
+These are the production codes. A zone code never expires (see
+[Known limitations](#known-limitations)), so publishing them gives away nothing that
+a photo of a stop would not.
+
 ---
 
 ## 🚀 How it works
