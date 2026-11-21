@@ -45,12 +45,12 @@ def min_cost(trips: list[TripResponse]) -> int:
 def fill_table(
     trips: list[TripResponse],
 ) -> tuple[list[date], dict[int, int], dict[int, tuple[TicketType, int]]]:
-    # requires optimization, now effeciency is O(n^2), it is possible to update to O(n)
     buffer = {}
     best = {}
     choice = {}
     best[0] = 0
     dates_of_trips = sorted([el.start.date() for el in trips])
+    # Keep only unique dates while preserving order
     days = list(dict.fromkeys(dates_of_trips))
 
     singles_prices: defaultdict[date, int] = defaultdict(int)
@@ -58,8 +58,8 @@ def fill_table(
     for trip in trips:
         singles_prices[trip.start.date()] += get_price_of_single_ticket(trip=trip)
 
+    j = 0
     for i in range(1, len(days) + 1):
-        j = 0
         buffer[singles_prices[days[i - 1]] + best[i - 1]] = (
             TicketType.SINGLE_TICKET,
             i - 1,
@@ -68,9 +68,11 @@ def fill_table(
             TicketType.DAY_TICKET,
             i - 1,
         )
-        for day in days:
-            if days[i - 1] - timedelta(days=6) > day:
-                j += 1
+
+        edge = days[i - 1] - timedelta(days=6)
+        while days[j] < edge:
+            j += 1
+
         buffer[tariffs[TicketType.WEEKLY_TICKET] + best[j]] = (
             TicketType.WEEKLY_TICKET,
             j,
