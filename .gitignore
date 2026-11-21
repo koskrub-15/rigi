@@ -15,6 +15,9 @@
 !just/
 !just/**
 !README.md
+!docs/
+!docs/zone-codes/
+!docs/zone-codes/*.png
 !CONTRIBUTING.md
 !LICENSE
 !files/
