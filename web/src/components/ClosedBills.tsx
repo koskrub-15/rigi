@@ -11,6 +11,8 @@ export function ClosedBills({ onLogout }: { onLogout: () => void }) {
   const [error, setError] = useState("");
   const [[year, month]] = useState(() => previousMonth(new Date()));
   const label = `${year}-${String(month).padStart(2, "0")}`;
+  const previousMonthIsClosed =
+    bills?.some((bill) => bill.year === year && bill.month === month) ?? false;
   const payment = new URLSearchParams(window.location.search).get("payment");
 
   async function load() {
@@ -70,9 +72,11 @@ export function ClosedBills({ onLogout }: { onLogout: () => void }) {
     <section className={cardClass}>
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-lg font-semibold">Bills</h2>
-        <button className={secondaryButtonClass} onClick={closeBill}>
-          Close {label}
-        </button>
+        {bills !== null && !previousMonthIsClosed && (
+          <button className={secondaryButtonClass} onClick={closeBill}>
+            Close {label}
+          </button>
+        )}
       </div>
       {bills === null ? (
         <p className="text-sm text-slate-500">Loading…</p>
