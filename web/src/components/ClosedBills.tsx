@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { buttonClass, cardClass, secondaryButtonClass } from "../styles";
+import {
+  billActionClass,
+  billBadgeClass,
+  buttonClass,
+  cardClass,
+  secondaryButtonClass,
+} from "../styles";
 
 import { previousMonth } from "../month";
 import { apiFetch } from "../api";
@@ -97,16 +103,20 @@ export function ClosedBills({ onLogout }: { onLogout: () => void }) {
                     {monthName} · {formatMoney(bill.total, bill.currency)}
                   </span>
                   {bill.paid_at ? (
-                    <span className="rounded-full bg-green-100 text-green-800 text-xs px-2 py-0.5">
+                    <span
+                      className={`${billBadgeClass} rounded-lg bg-green-100 text-green-800`}
+                    >
                       Paid
                     </span>
                   ) : bill.total === 0 ? (
-                    <span className="rounded-full bg-slate-100 text-slate-600 text-xs px-2 py-0.5">
+                    <span
+                      className={`${billBadgeClass} rounded-lg bg-slate-100 text-slate-600`}
+                    >
                       Nothing to pay
                     </span>
                   ) : (
                     <button
-                      className={buttonClass}
+                      className={`${buttonClass} ${billActionClass}`}
                       onClick={() => pay(bill.id)}
                     >
                       Pay
