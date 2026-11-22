@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { buttonClass, cardClass, secondaryButtonClass } from "../styles";
+import {
+  billActionClass,
+  billBadgeClass,
+  buttonClass,
+  cardClass,
+  secondaryButtonClass,
+} from "../styles";
 
 import { previousMonth } from "../month";
 import { apiFetch } from "../api";
@@ -11,6 +17,8 @@ export function ClosedBills({ onLogout }: { onLogout: () => void }) {
   const [error, setError] = useState("");
   const [[year, month]] = useState(() => previousMonth(new Date()));
   const label = `${year}-${String(month).padStart(2, "0")}`;
+  const previousMonthIsClosed =
+    bills?.some((bill) => bill.year === year && bill.month === month) ?? false;
   const payment = new URLSearchParams(window.location.search).get("payment");
 
   async function load() {
@@ -70,9 +78,11 @@ export function ClosedBills({ onLogout }: { onLogout: () => void }) {
     <section className={cardClass}>
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-lg font-semibold">Bills</h2>
-        <button className={secondaryButtonClass} onClick={closeBill}>
-          Close {label}
-        </button>
+        {bills !== null && !previousMonthIsClosed && (
+          <button className={secondaryButtonClass} onClick={closeBill}>
+            Close {label}
+          </button>
+        )}
       </div>
       {bills === null ? (
         <p className="text-sm text-slate-500">Loading…</p>
@@ -93,16 +103,20 @@ export function ClosedBills({ onLogout }: { onLogout: () => void }) {
                     {monthName} · {formatMoney(bill.total, bill.currency)}
                   </span>
                   {bill.paid_at ? (
-                    <span className="rounded-full bg-green-100 text-green-800 text-xs px-2 py-0.5">
+                    <span
+                      className={`${billBadgeClass} rounded-lg bg-green-100 text-green-800`}
+                    >
                       Paid
                     </span>
                   ) : bill.total === 0 ? (
-                    <span className="rounded-full bg-slate-100 text-slate-600 text-xs px-2 py-0.5">
+                    <span
+                      className={`${billBadgeClass} rounded-lg bg-slate-100 text-slate-600`}
+                    >
                       Nothing to pay
                     </span>
                   ) : (
                     <button
-                      className={buttonClass}
+                      className={`${buttonClass} ${billActionClass}`}
                       onClick={() => pay(bill.id)}
                     >
                       Pay
